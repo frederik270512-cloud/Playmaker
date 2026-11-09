@@ -1,0 +1,112 @@
+/*
+  KAMPDAG – ekstra styles til målmandsredninger, skudkort og spilletid.
+  (De grundlæggende Kampdag-styles ligger i styles.css – her er kun det nye.)
+*/
+
+/* ---------- "På banen"-knappen og spilletiden ---------- */
+.kd-paa-banen {
+  background: var(--baggrund);
+  border: 1px solid var(--kant);
+  color: var(--tekst-svag);
+  border-radius: 999px;
+  padding: 4px 10px;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.kd-paa-banen:hover:not(:disabled) { border-color: var(--ok); }
+.kd-paa-banen.aktiv {
+  background: rgba(34, 197, 94, 0.18);
+  border-color: var(--ok);
+  color: #86efac;
+}
+.kd-paa-banen:disabled { opacity: 0.35; cursor: not-allowed; }
+.kd-spiller.paa-banen { border-left-color: var(--ok); }
+
+/* Målmandens redninger i rækken */
+.kd-redning-info { color: #fde68a; font-weight: 600; }
+.kd-knapper button.redning-knap { border-color: #a16207; }
+
+/* ---------- Skudkortet (3 × 3 mål) ---------- */
+.skudkort-faner { display: flex; gap: 4px; }
+.skudkort-faner button {
+  flex: 1;
+  background: var(--baggrund);
+  border: 1px solid var(--kant);
+  color: var(--tekst-svag);
+  border-radius: 8px;
+  padding: 4px 6px;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.skudkort-faner button.aktiv { color: var(--tekst); border-color: var(--blaa); background: #1e3a5f; }
+.skudkort-note { margin: 0; font-size: 0.75rem; color: var(--tekst-svag); }
+
+/* Selve målet: tre rækker og tre kolonner med en "målstolpe"-ramme rundt om */
+.maal-gitter {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, minmax(34px, auto));
+  gap: 2px;
+  padding: 3px;
+  border: 4px solid #e5e7eb;
+  border-bottom: none;                 /* målet står på gulvet – ingen stolpe forneden */
+  border-radius: 4px 4px 0 0;
+  background: repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.04) 0 6px, transparent 6px 12px);  /* "net" */
+  max-width: 320px;
+}
+.maal-felt {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 2px 6px;
+  border-radius: 3px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  background: rgba(15, 23, 42, 0.55);
+  padding: 2px;
+}
+.maal-felt-tom { color: var(--tekst-svag); opacity: 0.5; }
+.maal-felt-maal, .maal-felt-afb { white-space: nowrap; }
+
+/* ---------- Boksen "Hvor i målet?" ---------- */
+.hjoerne-dialog p.hjoerne-hjaelp { margin: 0 0 10px; }
+.hjoerne-valg {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+  padding: 4px;
+  border: 5px solid #e5e7eb;
+  border-bottom: none;
+  border-radius: 6px 6px 0 0;
+  margin-bottom: 16px;
+}
+.hjoerne-knap {
+  background: var(--panel-lys);
+  border: 1px solid var(--kant);
+  color: var(--tekst);
+  border-radius: 6px;
+  padding: 12px 4px;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  line-height: 1.2;
+}
+.hjoerne-knap small { font-weight: 500; color: var(--tekst-svag); }
+.hjoerne-knap:hover, .hjoerne-knap:focus-visible { border-color: var(--blaa); background: #1e3a5f; }
+
+/* ---------- Historik (spillerens side) ---------- */
+.historik-skudkort { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-start; }
+.historik-skudkort .maal-gitter { flex: 1 1 220px; }
+
+@media (max-width: 600px) {
+  .kd-paa-banen { padding: 6px 10px; }
+  .hjoerne-knap { padding: 14px 4px; }
+}

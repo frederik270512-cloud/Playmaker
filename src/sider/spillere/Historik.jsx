@@ -9,7 +9,9 @@
 import { useState } from "react";
 import { useData } from "../../DataKontekst.jsx";
 import { useDialog } from "../../komponenter/Dialog.jsx";
-import { idagISO, formatDato, decimal, sumAf, nytId } from "../../hjaelpere.js";
+import { idagISO, formatDato, decimal, sumAf, nytId, formatUr } from "../../hjaelpere.js";
+import { MaalGitter } from "../kampdag/MaalGitter.jsx";
+import { harSkudData, laegSkudKortSammen } from "../kampdag/maalHjoerner.js";
 
 // Et af tal-felterne øverst. klasse = "god" (grøn) eller "daarlig" (rød)
 function StatFelt({ navn, tal, underTekst, klasse = "" }) {
@@ -104,6 +106,23 @@ export default function Historik({ spiller }) {
   const skud = maal + afbraendere;                    // alle afslutninger
   const prKamp = tal => antal ? decimal(tal / antal) + " pr. kamp" : "";
 
+  /*
+    Tal fra Kampdag (kun kampe der er gemt med de nye felter – gamle og
+    manuelt tilføjede kampe har dem ikke, og de tæller derfor ikke med her):
+      spilletidSek            – sekunder på banen
+      redninger + maalImod    – målmandens redninger og mål imod
+      skudKort                – hvor i målet skuddene gik
+  */
+  const erTal = v => typeof v === "number" && Number.isFinite(v);
+  const kampeMedTid = kampe.filter(k => erTal(k.spilletidSek));
+  const spilletidIalt = sumAf(kampeMedTid, "spilletidSek");
+  const kampeMedRedninger = kampe.filter(k => erTal(k.redninger));
+  const redninger = sumAf(kampeMedRedninger, "redninger");
+  const maalImod = sumAf(kampeMedRedninger, "maalImod");
+  const redningSkud = redninger + maalImod;
+  // Alle kampenes skudkort lagt sammen til ét
+  const samletSkudKort = kampe.reduce((kort, k) => laegSkudKortSammen(kort, k.skudKort), {});
+
   // Forslag til modstander-feltet: alle holdnavne der er skrevet før (Set fjerner dubletter)
   const holdnavne = [...new Set(data.spillere.flatMap(s => s.kampe.map(k => k.modstander)))];
 
@@ -178,7 +197,43 @@ export default function Historik({ spiller }) {
           tal={skud ? Math.round((maal / skud) * 100) + "%" : "–"}
           underTekst={skud ? `${maal} af ${skud} skud` : ""}
         />
+        {/* De nye felter vises kun, når der er data fra Kampdag */}
+        {kampeMedTid.length > 0 && (
+          <StatFelt
+            navn="Spilletid"
+            tal={Math.round(spilletidIalt / kampeMedTid.length / 60) + " min"}
+            underTekst={`pr. kamp · ${Math.round(spilletidIalt / 60)} min i alt (${kampeMedTid.length} ${kampeMedTid.length === 1 ? "kamp" : "kampe"})`}
+          />
+        )}
+        {kampeMedRedninger.length > 0 && (
+          <>
+            <StatFelt
+              navn="Redninger"
+              tal={redninger}
+              underTekst={decimal(redninger / kampeMedRedninger.length) + " pr. kamp"}
+              klasse="god"
+            />
+            <StatFelt
+              navn="Redning %"
+              tal={redningSkud ? Math.round((redninger / redningSkud) * 100) + "%" : "–"}
+              underTekst={redningSkud ? `${redninger} af ${redningSkud} skud på mål` : ""}
+            />
+          </>
+        )}
       </div>
+
+      {harSkudData(samletSkudKort) && (
+        <>
+          <h3>🎯 Skudkort (alle kampe)</h3>
+          <div className="historik-skudkort">
+            <MaalGitter kort={samletSkudKort} />
+            <p className="skudkort-note">
+              Hvor i målet skuddene gik – set fra skytten.<br />
+              Grøn = mål, rød = afbrændere. Jo kraftigere farve, jo flere skud.
+            </p>
+          </div>
+        </>
+      )}
 
       <h3>🏆 Bedst imod</h3>
       <BedstImod kampe={kampe} />
@@ -191,7 +246,11 @@ export default function Historik({ spiller }) {
           <thead>
             <tr>
               <th>Dato</th><th>Modstander</th><th className="tal">M</th><th className="tal">A</th>
-              <th className="tal">Afb</th><th className="tal">TF</th><th></th>
+              <th className="tal">Afb</th><th className="tal">TF</th>
+              {/* Ekstra kolonner kun hvis der er data til dem */}
+              {kampeMedTid.length > 0 && <th className="tal" title="Spilletid (mm:ss)">Tid</th>}
+              {kampeMedRedninger.length > 0 && <th className="tal" title="Redninger">Redn</th>}
+              <th></th>
             </tr>
           </thead>
           <tbody>
@@ -203,6 +262,8 @@ export default function Historik({ spiller }) {
                 <td className="tal">{k.assists}</td>
                 <td className="tal">{k.afbraendere}</td>
                 <td className="tal">{k.tekniskeFejl}</td>
+                {kampeMedTid.length > 0 && <td className="tal">{erTal(k.spilletidSek) ? formatUr(k.spilletidSek) : "–"}</td>}
+                {kampeMedRedninger.length > 0 && <td className="tal">{erTal(k.redninger) ? k.redninger : "–"}</td>}
                 <td><button type="button" className="slet-x" title="Slet kamp" onClick={() => sletKamp(k)}>×</button></td>
               </tr>
             ))}
