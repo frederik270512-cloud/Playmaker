@@ -1,0 +1,13 @@
+# Pakker installeret af npm (kan altid hentes igen med "npm install")
+node_modules/
+
+# Den færdigbyggede app (laves med "npm run build")
+dist/
+
+# Midlertidige byggetjek
+.tjek-*/
+
+# Logfiler og systemfiler
+*.log
+.DS_Store
+Thumbs.db

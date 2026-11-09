@@ -1,0 +1,1411 @@
+/* Al styling for Playmaker – overført fra den oprindelige taktiktavle.html */
+/* =========================================================
+       FARVER OG GRUNDINDSTILLINGER
+       Vi samler farverne i "CSS-variabler" (--navn), så man kun
+       skal ændre dem ét sted, hvis man vil skifte udseende.
+       ========================================================= */
+    :root {
+      --baggrund: #0f172a;     /* mørk baggrund på hele siden */
+      --panel: #1e293b;        /* baggrund på paneler/kort */
+      --panel-lys: #273449;    /* lidt lysere kort */
+      --kant: #334155;         /* tynde kanter/streger */
+      --tekst: #e2e8f0;        /* almindelig tekst */
+      --tekst-svag: #94a3b8;   /* grå hjælpetekst */
+      --fremhaev: #fde047;     /* gul farve når en plads lyser op */
+      --advarsel: #f59e0b;     /* orange advarselsfarve */
+      --fare: #ef4444;         /* rød – slet, skadet */
+      --ok: #22c55e;           /* grøn – klar til kamp */
+      --blaa: #3b82f6;         /* blå – primære knapper */
+      color-scheme: dark;      /* får browserens egne felter (f.eks. datovælger) til at være mørke */
+    }
+
+    /* box-sizing: border-box betyder at kant og padding regnes med i
+       bredden. Det gør det meget lettere at styre størrelser. */
+    * { box-sizing: border-box; }
+
+    /* VIGTIGT: elementer med attributten "hidden" skal altid være skjult.
+       Uden denne linje vil f.eks. "display: grid" overskrive hidden. */
+    [hidden] { display: none !important; }
+
+    body {
+      margin: 0;
+      font-family: "Segoe UI", system-ui, sans-serif;
+      background: var(--baggrund);
+      color: var(--tekst);
+      height: 100vh;               /* siden fylder præcis skærmens højde */
+      display: flex;
+      flex-direction: column;      /* header øverst, indhold nedenunder */
+    }
+
+    /* ---------- Toppen af siden ---------- */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 24px;
+      border-bottom: 1px solid var(--kant);
+    }
+    .header-venstre { display: flex; align-items: center; gap: 28px; }
+    header h1 { margin: 0; font-size: 1.3rem; }
+    .status { color: var(--tekst-svag); font-size: 0.95rem; margin-right: 16px; }
+    header { gap: 16px; }
+    .header-venstre { gap: 20px; }
+    .forsvar-valg, .status { white-space: nowrap; margin-right: 0 !important; }
+    .data-knapper { display: flex; gap: 6px; }
+
+    /* Værktøjerne øverst i tavlens højre panel */
+    .tavle-vaerktoej {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--kant);
+    }
+    .tavle-vaerktoej-raekke { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .tavle-vaerktoej-raekke .knap { flex: 1; }
+    .knap.aktiv-knap { background: var(--fremhaev); color: #1e1e1e; }   /* fx "Tegn" når den er slået til */
+
+    /* Fanerne (navigationen mellem siderne) */
+    .faner {
+      display: flex;
+      gap: 4px;
+      background: var(--panel);
+      padding: 4px;
+      border-radius: 10px;
+    }
+    .fane {
+      background: transparent;
+      border: none;
+      color: var(--tekst-svag);
+      padding: 8px 18px;
+      border-radius: 8px;
+      font: inherit;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .fane:hover { color: var(--tekst); }
+    .fane.aktiv { background: var(--panel-lys); color: white; }
+
+    /* ---------- Knapper ---------- */
+    .knap {
+      background: var(--panel-lys);
+      color: white;
+      border: none;
+      padding: 9px 18px;
+      border-radius: 8px;
+      font: inherit;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: filter 0.15s;
+    }
+    .knap:hover { filter: brightness(1.15); }
+    .knap, .fane { white-space: nowrap; }   /* teksten på knapper må ikke knække over på to linjer */
+    .knap-primaer { background: var(--blaa); }
+    .knap-fare { background: var(--fare); }
+    .knap-lille { padding: 5px 10px; font-size: 0.8rem; }
+    .knap:disabled { opacity: 0.4; cursor: not-allowed; filter: none; }
+
+    /* Fælles boks-stil til paneler */
+    .kort {
+      background: var(--panel);
+      border-radius: 12px;
+      padding: 20px;
+      overflow-y: auto;
+      min-height: 0;
+    }
+
+    /* =========================================================
+       SIDE 1: SPILLERE
+       ========================================================= */
+    .side-spillere {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1fr 420px;   /* listen til venstre, redigering til højre */
+      gap: 20px;
+      padding: 20px;
+      min-height: 0;
+    }
+
+    .liste-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+    .liste-top h2, .kort h2 { margin: 0; font-size: 1.2rem; }
+    .opsummering { margin: 4px 0 0; color: var(--tekst-svag); font-size: 0.9rem; }
+
+    /* Tabellen med spillere */
+    .spiller-tabel { width: 100%; border-collapse: collapse; }
+    .spiller-tabel th {
+      text-align: left;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--tekst-svag);
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--kant);
+    }
+    .spiller-tabel td { padding: 10px; border-bottom: 1px solid var(--kant); }
+    .spiller-tabel tbody tr { cursor: pointer; transition: background 0.1s; }
+    .spiller-tabel tbody tr:hover { background: var(--panel-lys); }
+    .spiller-tabel tbody tr.valgt { background: #2c3e5c; box-shadow: inset 4px 0 0 var(--blaa); }
+    .navn-celle { font-weight: 600; }
+    .svag { color: var(--tekst-svag); }
+
+    /* Lille rund cirkel med nummeret i tabellen */
+    .mini-nummer {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      font-weight: 800;
+      font-size: 0.85rem;
+      border: 2px solid white;
+    }
+
+    /* "Chip" = lille farvet mærkat, bruges til positioner og status */
+    .rolle-chip, .status-chip {
+      display: inline-block;
+      padding: 3px 9px;
+      border-radius: 999px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .rolle-chip {
+      /* color-mix blander rollens farve med gennemsigtighed, så baggrunden bliver svag */
+      background: color-mix(in srgb, var(--rollefarve) 22%, transparent);
+      border: 1px solid var(--rollefarve);
+    }
+    .status-chip.klar   { background: rgba(34, 197, 94, 0.15);  color: #86efac; }
+    .status-chip.skadet { background: rgba(239, 68, 68, 0.18);  color: #fca5a5; }
+    .status-chip.ovre   { background: rgba(148, 163, 184, 0.15); color: var(--tekst-svag); }
+
+    /* Redigeringspanelet til højre */
+    .redigering h3 {
+      margin: 24px 0 12px;
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--tekst-svag);
+    }
+    .redigering form { display: flex; flex-direction: column; gap: 14px; margin-top: 16px; }
+
+    .felt {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      flex: 1;
+      min-width: 0;          /* VIGTIGT: ellers kan flexbox ikke gøre feltet smallere end indholdet */
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--tekst-svag);
+    }
+    .felt input, .felt select, .felt textarea {
+      width: 100%;           /* fyld feltets bredde (i stedet for browserens standardbredde) */
+      min-width: 0;
+      background: var(--baggrund);
+      border: 1px solid var(--kant);
+      color: var(--tekst);
+      padding: 9px 10px;
+      border-radius: 8px;
+      font: inherit;
+      font-size: 0.95rem;
+      font-weight: 400;
+    }
+    .felt input:focus, .felt select:focus, .felt textarea:focus { outline: 2px solid var(--blaa); border-color: transparent; }
+    /* Paneler må aldrig få en vandret scrollbar – kun lodret */
+    .kort, .panel { overflow-x: hidden; }
+    .felt-raekke { display: flex; gap: 12px; }
+    .knap-raekke { display: flex; gap: 10px; justify-content: space-between; }
+
+    .besked { margin: 0; font-size: 0.85rem; min-height: 1.2em; }
+    .besked.fejl { color: #fca5a5; }
+    .besked.ok { color: #86efac; }
+
+    /* Et punkt i skadehistorikken */
+    .skade {
+      background: var(--panel-lys);
+      border-left: 4px solid var(--kant);
+      border-radius: 8px;
+      padding: 10px 12px;
+      margin-bottom: 8px;
+      font-size: 0.9rem;
+    }
+    .skade.aktiv { border-left-color: var(--fare); }
+    .skade-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+    .skade-dato { color: var(--tekst-svag); font-size: 0.8rem; margin-top: 3px; }
+    .skade-note { margin-top: 6px; font-style: italic; }
+    .skade-knapper { display: flex; gap: 6px; margin-top: 8px; }
+
+    .skade-form {
+      border: 1px dashed var(--kant);
+      border-radius: 10px;
+      padding: 14px;
+      margin-top: 12px !important;
+    }
+
+    .tom-tekst { color: var(--tekst-svag); font-size: 0.85rem; text-align: center; margin: auto; }
+
+    /* ---------- Nummerhjulet ---------- */
+    .felt-hjul { flex: 0 0 96px; }
+    .felt-kolonne { flex: 1; display: flex; flex-direction: column; gap: 14px; }
+    .hjul-ramme {
+      position: relative;
+      height: 140px;
+      border: 1px solid var(--kant);
+      border-radius: 10px;
+      background: var(--baggrund);
+      overflow: hidden;
+    }
+    /* Det blå bånd i midten, der viser hvilket tal der er valgt */
+    .hjul-ramme::after {
+      content: "";
+      position: absolute;
+      left: 6px;
+      right: 6px;
+      top: 50%;
+      height: 36px;
+      transform: translateY(-50%);
+      border-top: 2px solid var(--blaa);
+      border-bottom: 2px solid var(--blaa);
+      background: rgba(59, 130, 246, 0.12);
+      border-radius: 6px;
+      pointer-events: none;
+    }
+    .nummer-hjul {
+      height: 100%;
+      overflow-y: scroll;
+      scroll-snap-type: y mandatory;   /* hjulet "klikker" på plads ved hvert tal */
+      scrollbar-width: none;           /* skjul scrollbaren (Firefox) */
+      padding: 52px 0;                 /* (140 - 36) / 2 = 52 → også 1 og 99 kan stå i midten */
+      /* tonede kanter øverst og nederst, så det ligner et hjul */
+      -webkit-mask-image: linear-gradient(transparent, black 30%, black 70%, transparent);
+      mask-image: linear-gradient(transparent, black 30%, black 70%, transparent);
+    }
+    .nummer-hjul::-webkit-scrollbar { display: none; }   /* skjul scrollbaren (Chrome/Edge) */
+    .hjul-tal {
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      scroll-snap-align: center;
+      font-size: 1.35rem;
+      font-weight: 800;
+      color: var(--tekst-svag);
+      cursor: pointer;
+    }
+    .hjul-tal.valgt { color: white; }
+    /* Numre der er taget af andre spillere: grå, overstreget og kan ikke vælges */
+    .hjul-tal.optaget {
+      color: #475569;
+      text-decoration: line-through;
+      font-weight: 600;
+      cursor: not-allowed;
+    }
+    #felt-nummer { text-align: center; margin-top: 6px; }
+    #felt-nummer.forkert { outline: 2px solid var(--fare); }
+
+    /* ---------- Faner inde i spillerpanelet (Historik / Oplysninger) ---------- */
+    .under-faner {
+      display: flex;
+      gap: 4px;
+      background: var(--baggrund);
+      padding: 4px;
+      border-radius: 10px;
+      margin-top: 14px;
+    }
+    .under-fane {
+      flex: 1;
+      background: transparent;
+      border: none;
+      color: var(--tekst-svag);
+      padding: 7px;
+      border-radius: 8px;
+      font: inherit;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .under-fane.aktiv { background: var(--panel-lys); color: white; }
+
+    /* ---------- Statistik ---------- */
+    .stat-gitter { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 16px; }
+    .stat { background: var(--panel-lys); border-radius: 10px; padding: 10px 6px; text-align: center; }
+    .stat-tal { font-size: 1.5rem; font-weight: 800; }
+    .stat.god .stat-tal { color: #86efac; }
+    .stat.daarlig .stat-tal { color: #fca5a5; }
+    .stat-navn { font-size: 0.7rem; color: var(--tekst-svag); text-transform: uppercase; letter-spacing: 0.04em; }
+    .stat-snit { font-size: 0.72rem; color: var(--tekst-svag); margin-top: 2px; }
+
+    .bedst-linje {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--panel-lys);
+      border-radius: 8px;
+      padding: 8px 12px;
+      margin-bottom: 6px;
+      font-size: 0.9rem;
+    }
+    .bedst-linje .medalje { font-size: 1.3rem; }
+    .bedst-linje small { display: block; color: var(--tekst-svag); }
+
+    .kamp-tabel { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    .kamp-tabel th {
+      text-align: left;
+      color: var(--tekst-svag);
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      padding: 4px 6px;
+      border-bottom: 1px solid var(--kant);
+    }
+    .kamp-tabel td { padding: 6px; border-bottom: 1px solid var(--kant); }
+    .kamp-tabel .tal { text-align: center; }
+    .slet-x { background: none; border: none; color: var(--tekst-svag); cursor: pointer; font-size: 1rem; }
+    .slet-x:hover { color: var(--fare); }
+    .tal-felter .felt { min-width: 0; }
+    .tal-felter input { width: 100%; }
+
+    /* =========================================================
+       SIDE 2: TAKTIKTAVLE
+       ========================================================= */
+    .side-tavle {
+      flex: 1;                              /* fylder resten af højden */
+      display: grid;
+      grid-template-columns: 1fr 340px;     /* banen tager resten, panelet 340px */
+      gap: 20px;
+      padding: 20px;
+      min-height: 0;                        /* nødvendigt for at scroll virker i panelet */
+    }
+
+    .bane-omraade {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 0;
+    }
+
+    /* Selve banen. Bredden regnes ud, så banen altid kan være på skærmen.
+       aspect-ratio holder forholdet mellem bredde og højde det samme
+       som i SVG-tegningen (230 x 252). */
+    .bane {
+      position: relative;    /* pladserne placeres "absolut" inden i denne boks */
+      width: min(100%, calc((100vh - 120px) * 230 / 252));
+      aspect-ratio: 230 / 252;
+    }
+    .bane svg {
+      position: absolute;
+      inset: 0;              /* fyld hele .bane */
+      width: 100%;
+      height: 100%;
+      border-radius: 12px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    }
+
+    /* ---------- De 7 pladser på banen ---------- */
+    .plads {
+      position: absolute;
+      /* left/top sættes fra JavaScript. translate(-50%,-50%) gør at
+         midten af cirklen (ikke hjørnet) står på det punkt. */
+      transform: translate(-50%, -50%);
+      width: 70px;
+      height: 70px;
+      border-radius: 50%;
+      border: 2px dashed rgba(255, 255, 255, 0.6);
+      background: rgba(255, 255, 255, 0.08);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.15s, box-shadow 0.15s, background 0.15s, border-color 0.15s;
+      z-index: 2;            /* vores pladser ligger OVER modstanderne, så man altid kan slippe her */
+    }
+    .plads-label {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: rgba(255, 255, 255, 0.85);
+      pointer-events: none;   /* teksten må ikke "stjæle" drag-events */
+    }
+    /* Når pladsen har en spiller, skjuler vi den stiplede kant og teksten */
+    .plads.optaget { border-color: transparent; background: transparent; }
+    .plads.optaget .plads-label { display: none; }
+
+    /* Mens man trækker en spiller, gøres de tomme pladser lidt tydeligere */
+    body.drag-i-gang .plads:not(.optaget) {
+      border-color: rgba(255, 255, 255, 0.95);
+      background: rgba(255, 255, 255, 0.15);
+    }
+
+    /* "lys-op" sættes på af JavaScript, når en spiller trækkes hen over */
+    .plads.lys-op {
+      border: 2px solid var(--fremhaev);
+      background: rgba(253, 224, 71, 0.25);
+      box-shadow: 0 0 0 6px rgba(253, 224, 71, 0.3), 0 0 28px var(--fremhaev);
+      transform: translate(-50%, -50%) scale(1.15);
+    }
+
+    /* ---------- Modstandernes forsvarsspillere ---------- */
+    .modstander {
+      position: absolute;
+      /* scale(0.85): lidt mindre end vores spillere, så banen ikke bliver for fyldt */
+      transform: translate(-50%, -50%) scale(0.85);
+      width: 54px;
+      height: 58px;
+      z-index: 1;            /* under vores pladser */
+      cursor: grab;
+      filter: drop-shadow(0 3px 3px rgba(0, 0, 0, 0.5));
+    }
+    .modstander svg { width: 100%; height: 100%; display: block; }
+    .modstander.flyttes { opacity: 0.35; }
+
+    .forsvar-valg { color: var(--tekst-svag); font-size: 0.95rem; margin-right: 16px; }
+    .forsvar-valg select {
+      background: var(--panel);
+      color: var(--tekst);
+      border: 1px solid var(--kant);
+      border-radius: 6px;
+      padding: 5px 8px;
+      font: inherit;
+      margin-left: 6px;
+    }
+
+    /* ---------- Spillerbrikken ---------- */
+    .brik {
+      display: flex;
+      align-items: center;
+      cursor: grab;
+      user-select: none;      /* undgå at teksten bliver markeret når man trækker */
+      position: relative;
+    }
+    .brik:active { cursor: grabbing; }
+    /* touch-action: none = fingeren flytter brikken i stedet for at scrolle siden.
+       På bænken tillader vi lodret scroll (pan-y), så man stadig kan scrolle listen. */
+    .bane .brik, .modstander { touch-action: none; }
+    .panel .brik { touch-action: pan-y; }
+
+    /* Spøgelsesbrikken der følger fingeren/musen, mens man trækker */
+    .spoegelse {
+      position: fixed;
+      z-index: 100;
+      pointer-events: none;     /* så vi kan se, hvad der er UNDER den */
+      opacity: 0.9;
+      transform: scale(1.1);
+      filter: drop-shadow(0 8px 12px rgba(0, 0, 0, 0.6));
+    }
+    .spoegelse .brik-tekst { display: none; }
+    .spoegelse.modstander { transform: scale(0.95); }
+
+    /* Spilleren man har trykket på (tryk-for-at-flytte) */
+    .brik.valgt-brik .brik-figur { filter: drop-shadow(0 0 6px var(--fremhaev)) drop-shadow(0 0 3px var(--fremhaev)); }
+    .panel .brik.valgt-brik { background: #3a4a2a; outline: 2px solid var(--fremhaev); }
+    /* Brikken der lige nu bliver trukket, bliver halvt gennemsigtig */
+    .brik.flyttes { opacity: 0.35; }
+
+    /* Spillerens overkrop (hoved + trøje). Selve tegningen er en lille SVG,
+       som JavaScript laver i funktionen figurSVG(). */
+    .brik-figur {
+      width: 54px;
+      height: 58px;
+      position: relative;
+      flex-shrink: 0;
+      filter: drop-shadow(0 3px 3px rgba(0, 0, 0, 0.5));   /* skygge der følger figurens form */
+    }
+    .brik-figur svg { width: 100%; height: 100%; display: block; }
+
+    /* Lille label med rollens forkortelse (f.eks. "VB") */
+    .brik-rolle {
+      position: absolute;
+      top: -7px;
+      right: -12px;
+      font-size: 0.65rem;
+      font-weight: 700;
+      background: var(--baggrund);
+      color: white;
+      padding: 1px 5px;
+      border-radius: 6px;
+      border: 1px solid var(--rollefarve);
+    }
+
+    /* Advarselstegnet der vises når spilleren står på en forkert plads */
+    .brik-advarsel {
+      position: absolute;
+      top: -8px;
+      left: -10px;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: var(--advarsel);
+      color: #1e1e1e;
+      font-size: 0.8rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 0 2px white;
+      animation: puls 1.4s infinite;
+    }
+    @keyframes puls {
+      0%, 100% { transform: scale(1); }
+      50%      { transform: scale(1.15); }
+    }
+
+    /* Plaster-mærket på skadede spillere */
+    .brik-skade {
+      position: absolute;
+      bottom: -6px;
+      right: -8px;
+      font-size: 0.9rem;
+      background: white;
+      border-radius: 50%;
+      width: 22px;
+      height: 22px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .brik-tekst { display: flex; flex-direction: column; }
+    .brik-navn { font-weight: 600; font-size: 0.85rem; white-space: nowrap; }
+    .brik-rollenavn { font-size: 0.75rem; color: var(--tekst-svag); }
+
+    /* --- Sådan ser brikken ud PÅ BANEN: navnet står under cirklen --- */
+    .bane .brik-tekst {
+      position: absolute;
+      top: calc(100% + 2px);
+      left: 50%;
+      transform: translateX(-50%);
+      pointer-events: none;
+    }
+    .bane .brik-navn {
+      background: rgba(15, 23, 42, 0.85);
+      padding: 1px 8px;
+      border-radius: 8px;
+      font-size: 0.75rem;
+    }
+    .bane .brik-rollenavn { display: none; }  /* rollenavnet står allerede i labelen */
+
+    /* --- Sådan ser brikken ud I PANELET: et kort med tekst ved siden af --- */
+    .panel .brik {
+      gap: 12px;
+      background: var(--panel-lys);
+      padding: 8px 12px;
+      border-radius: 12px;
+      border-left: 5px solid var(--rollefarve);
+      transition: background 0.15s;
+    }
+    .panel .brik:hover { background: #31415a; }
+    .panel .brik.skadet { opacity: 0.55; }     /* skadede spillere er "nedtonede" på bænken */
+    .panel .brik-figur { width: 40px; height: 43px; }
+    .panel .brik-rolle { display: none; }      /* rollen står i teksten i stedet */
+
+    /* ---------- Højre panel på tavlen ---------- */
+    .panel {
+      background: var(--panel);
+      border-radius: 12px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      overflow-y: auto;        /* scroll hvis der er mange spillere */
+      min-height: 0;
+    }
+    /* Uden denne linje "klemmer" flexbox boksene sammen, når der ikke er plads,
+       så udskifterlisten løber ud over advarslerne. flex-shrink: 0 = må ikke krympe,
+       så panelet scroller i stedet. */
+    .panel > * { flex-shrink: 0; }
+    .panel h2 {
+      margin: 0;
+      font-size: 1rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--tekst-svag);
+    }
+
+    /* Listen med udskiftere. Den er også et sted man kan slippe spillere. */
+    .udskiftere {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      min-height: 120px;
+      padding: 8px;
+      border: 2px dashed transparent;
+      border-radius: 12px;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    body.drag-i-gang .udskiftere { border-color: var(--kant); }
+    .udskiftere.lys-op {
+      border-color: var(--fremhaev) !important;
+      background: rgba(253, 224, 71, 0.08);
+    }
+
+    /* Advarsels-boksen */
+    .advarsler { display: flex; flex-direction: column; gap: 6px; }
+    .advarsel-linje {
+      background: rgba(245, 158, 11, 0.15);
+      border-left: 4px solid var(--advarsel);
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-size: 0.85rem;
+    }
+
+    /* =========================================================
+       SIDE 3: SYSTEMER
+       ========================================================= */
+    .side-systemer {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 20px;
+      min-height: 0;
+    }
+    /* Editoren: bane til venstre, panel til højre */
+    .system-editor {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1fr 380px;
+      gap: 20px;
+      min-height: 0;
+    }
+
+    /* ---------- Oversigten med alle systemer ---------- */
+    .system-oversigt { overflow-y: auto; min-height: 0; }
+    /* auto-fill + minmax: så mange kort pr. række der er plads til, hver mindst 240px brede */
+    .system-gitter {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 16px;
+    }
+    .system-kort {
+      background: var(--panel);
+      border-radius: 12px;
+      overflow: hidden;
+      cursor: pointer;
+      border: 2px solid transparent;
+      transition: border-color 0.15s, transform 0.15s;
+    }
+    .system-kort:hover { border-color: var(--blaa); transform: translateY(-3px); }
+    .system-kort { position: relative; }   /* så slet-knappen kan placeres i hjørnet */
+    .kort-slet {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      border: none;
+      background: rgba(15, 23, 42, 0.85);
+      font-size: 1rem;
+      cursor: pointer;
+      opacity: 0.75;
+      transition: opacity 0.15s, background 0.15s;
+    }
+    .system-kort:hover .kort-slet { opacity: 1; }
+    .kort-slet:hover { background: var(--fare); }
+    .system-kort svg { display: block; width: 100%; aspect-ratio: 230 / 200; background: #1d4e89; }
+    .system-kort-tekst { padding: 12px 14px; }
+    .system-kort h3 { margin: 0 0 4px; font-size: 1rem; }
+    .system-kort p {
+      margin: 0;
+      color: var(--tekst-svag);
+      font-size: 0.82rem;
+      /* vis højst 2 linjer af beskrivelsen */
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .system-kort .meta { margin-top: 8px; font-size: 0.75rem; color: var(--tekst-svag); }
+    .nyt-kort {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      min-height: 220px;
+      background: transparent;
+      border: 2px dashed var(--kant);
+      color: var(--tekst-svag);
+      font-weight: 600;
+    }
+    .nyt-kort span { font-size: 2.2rem; line-height: 1; }
+
+    /* ---------- Seer-tilstand: kun banen og afspilleren, intet panel ---------- */
+    .system-editor.seer { grid-template-columns: 1fr; }
+    .system-editor.seer .system-panel { display: none; }
+    .system-editor:not(.seer) .seer-top { display: none; }
+    .seer-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 16px;
+    }
+    .seer-top h2 { margin: 0; font-size: 1.25rem; }
+    .seer-knapper { display: flex; gap: 8px; flex-shrink: 0; }
+    /* I seer-tilstand tager topbjælken lidt plads, så banen bliver en anelse lavere.
+       Topbjælken må gerne være bredere end banen, så beskrivelsen ikke fylder mange linjer. */
+    .system-editor.seer .system-bane,
+    .system-editor.seer .afspiller {
+      width: min(100%, calc((100vh - 270px) * 230 / 252));
+    }
+    .seer-top { width: min(100%, 1000px); }
+    .seer-top > div:first-child { min-width: 0; flex: 1; }
+    .system-venstre { overflow-y: auto; }   /* sikkerhed på meget små skærme */
+
+    /* ---------- Præsentation: systemet i fuld skærm ---------- */
+    /* position: fixed + inset: 0 = dæk HELE vinduet, oven på alt andet */
+    .system-venstre.praesentation {
+      position: fixed;
+      inset: 0;
+      z-index: 30;
+      background: var(--baggrund);
+      padding: 24px;
+      justify-content: center;
+    }
+    .system-venstre.praesentation .system-bane,
+    .system-venstre.praesentation .afspiller,
+    .system-venstre.praesentation .seer-top {
+      width: min(100%, calc((100vh - 190px) * 230 / 252));
+    }
+    .system-venstre.praesentation #seer-tilbage-knap,
+    .system-venstre.praesentation #rediger-knap { display: none; }
+    .seer-top { flex-wrap: wrap; }
+    .tast-hjaelp { display: none; flex-basis: 100%; margin: 0; color: var(--tekst-svag); font-size: 0.8rem; }
+    .praesentation .tast-hjaelp { display: block; }
+
+    .gem-raekke { display: flex; align-items: center; gap: 12px; }
+    .gem-status { font-size: 0.85rem; color: var(--tekst-svag); }
+    .gem-status.aendret { color: var(--advarsel); font-weight: 600; }
+    .gem-status.gemt { color: #86efac; }
+    .system-venstre {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      min-height: 0;
+    }
+    /* Banen her er lidt lavere end på taktiktavlen, så der er plads til afspilleren nedenunder */
+    .system-bane, .afspiller {
+      width: min(100%, calc((100vh - 190px) * 230 / 252));
+    }
+    .system-bane {
+      position: relative;
+      aspect-ratio: 230 / 252;
+      user-select: none;
+    }
+    .system-bane > svg {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      border-radius: 12px;
+    }
+    .system-bane > svg:first-child { box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5); }
+    .pile-lag { pointer-events: none; z-index: 1; overflow: visible; }
+
+    /* Brikkerne på systemsiden. touch-action: none gør at træk også virker på touchskærme. */
+    .sbrik {
+      position: absolute;
+      width: 54px;
+      height: 58px;
+      transform: translate(-50%, -50%);
+      z-index: 2;
+      cursor: grab;
+      touch-action: none;
+      filter: drop-shadow(0 3px 3px rgba(0, 0, 0, 0.5));
+    }
+    .sbrik svg { width: 100%; height: 100%; display: block; }
+    .sbrik.modst { transform: translate(-50%, -50%) scale(0.85); z-index: 1; }
+    .sbrik.trukket { cursor: grabbing; z-index: 5; }
+    .sbrik-navn {
+      position: absolute;
+      top: calc(100% + 1px);
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(15, 23, 42, 0.85);
+      padding: 0 7px;
+      border-radius: 8px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    /* "laast" = man kan ikke redigere lige nu (animationen kører, eller man står mellem to trin) */
+    .system-bane.laast .sbrik { cursor: default; }
+
+    /* Bolden: en lille gul/hvid kugle */
+    .bold {
+      position: absolute;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 35%, #ffffff, #fde047 60%, #ca8a04);
+      border: 1.5px solid #1e293b;
+      transform: translate(-50%, -50%);
+      z-index: 6;
+      cursor: grab;           /* bolden kan trækkes (kastes) */
+      touch-action: none;
+    }
+    .bold:hover { box-shadow: 0 0 0 4px rgba(253, 224, 71, 0.4); }
+    /* Når man ikke kan redigere, må bolden ikke kunne gribes */
+    .system-bane.laast .bold { pointer-events: none; }
+
+    .trin-skilt {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: rgba(15, 23, 42, 0.85);
+      padding: 4px 10px;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 0.85rem;
+      z-index: 7;
+    }
+
+    .afspiller {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--panel);
+      padding: 10px;
+      border-radius: 12px;
+    }
+    .afspiller input[type="range"] { flex: 1; accent-color: var(--blaa); }
+    .afspil-knap { min-width: 105px; }
+    .lille-valg {
+      background: var(--baggrund);
+      color: var(--tekst);
+      border: 1px solid var(--kant);
+      border-radius: 8px;
+      padding: 8px;
+      font: inherit;
+    }
+
+    .system-panel { display: flex; flex-direction: column; gap: 14px; }
+    .system-panel h3 {
+      margin: 6px 0 0;
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--tekst-svag);
+    }
+    .trin-knapper { display: flex; flex-wrap: wrap; gap: 6px; }
+    .trin-knap {
+      background: var(--panel-lys);
+      border: 1px solid var(--kant);
+      color: var(--tekst);
+      border-radius: 8px;
+      padding: 6px 13px;
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .trin-knap.aktiv { background: var(--blaa); border-color: var(--blaa); }
+    .trin-knap { display: inline-flex; align-items: center; gap: 6px; }
+    /* Det lille × på hvert trin */
+    .trin-slet {
+      font-size: 0.95rem;
+      line-height: 1;
+      color: var(--tekst-svag);
+      border-radius: 4px;
+      padding: 0 3px;
+    }
+    .trin-knap.aktiv .trin-slet { color: rgba(255, 255, 255, 0.8); }
+    .trin-slet:hover { background: var(--fare); color: white; }
+    .hjaelp { color: var(--tekst-svag); font-size: 0.85rem; margin: 0; line-height: 1.6; }
+    ol.hjaelp { padding-left: 20px; }
+
+    /* =========================================================
+       SIDE 4: OVERSIGT (modstandere)
+       ========================================================= */
+    .side-oversigt {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 300px 1fr;
+      gap: 20px;
+      padding: 20px;
+      min-height: 0;
+    }
+    .hold-liste { display: flex; flex-direction: column; gap: 8px; }
+    .hold-punkt {
+      text-align: left;
+      background: var(--panel-lys);
+      border: 2px solid transparent;
+      color: var(--tekst);
+      border-radius: 10px;
+      padding: 10px 12px;
+      font: inherit;
+      cursor: pointer;
+    }
+    .hold-punkt:hover { border-color: var(--kant); }
+    .hold-punkt.aktiv { border-color: var(--blaa); background: #2c3e5c; }
+    .hold-punkt small { display: block; color: var(--tekst-svag); margin-top: 2px; }
+
+    .scout h3 {
+      margin: 24px 0 10px;
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--tekst-svag);
+    }
+    .scout form { display: flex; flex-direction: column; gap: 12px; }
+    .scout-top { display: flex; align-items: center; gap: 12px; }
+    /* Holdnavnet: ligner en overskrift, men er et tekstfelt */
+    .titel-input {
+      flex: 1;
+      min-width: 0;
+      background: transparent;
+      border: 1px solid transparent;
+      color: var(--tekst);
+      font: inherit;
+      font-size: 1.5rem;
+      font-weight: 800;
+      padding: 4px 8px;
+      border-radius: 8px;
+    }
+    .titel-input:hover { border-color: var(--kant); }
+    .titel-input:focus { outline: 2px solid var(--blaa); }
+    .scout-gitter { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 14px; }
+    .felt textarea { resize: vertical; line-height: 1.5; }
+
+    /* Notefeltet ligner en gul post-it */
+    .noter {
+      width: 100%;
+      background: #fef9c3;
+      color: #1e1e1e;
+      border: none;
+      border-radius: 10px;
+      padding: 14px 16px;
+      font: inherit;
+      font-size: 0.95rem;
+      line-height: 1.6;
+      resize: vertical;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+    .noter:focus { outline: 3px solid var(--fremhaev); }
+
+    .noegle {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: var(--panel-lys);
+      border-radius: 10px;
+      padding: 8px 12px;
+      margin-bottom: 8px;
+    }
+    .noegle-figur { width: 40px; height: 43px; flex-shrink: 0; }
+    .noegle-figur svg { width: 100%; height: 100%; display: block; }
+    .noegle-tekst { flex: 1; }
+    .noegle-note { color: var(--tekst-svag); font-size: 0.85rem; margin-top: 3px; }
+
+    .kamp-linje {
+      background: var(--panel-lys);
+      border-radius: 8px;
+      padding: 8px 12px;
+      margin-bottom: 6px;
+      font-size: 0.9rem;
+    }
+    .kamp-linje small { display: block; color: var(--tekst-svag); margin-top: 2px; }
+
+    /* =========================================================
+       SIDE 5: KAMPDAG
+       ========================================================= */
+    .side-kampdag { flex: 1; display: flex; flex-direction: column; gap: 16px; padding: 20px; min-height: 0; }
+
+    .maaltavle {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items: center;
+      gap: 20px;
+      background: linear-gradient(180deg, #1e293b, #131c2e);
+      border: 1px solid var(--kant);
+      border-radius: 16px;
+      padding: 14px 24px;
+    }
+    .hold-score { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+    .hold-navn, .modstander-input {
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--tekst-svag);
+    }
+    .hold-navn { padding: 6px 0; }
+    .modstander-input {
+      background: transparent;
+      border: 1px solid var(--kant);
+      border-radius: 8px;
+      text-align: center;
+      font: inherit;
+      font-weight: 700;
+      color: var(--tekst);
+      padding: 5px 10px;
+      width: 240px;
+    }
+    /* tabular-nums: alle cifre er lige brede, så tallene ikke "hopper" */
+    .score { font-size: 4.2rem; font-weight: 900; line-height: 1; font-variant-numeric: tabular-nums; }
+    .score.hjemme { color: var(--fremhaev); }
+    .score-knapper { display: flex; gap: 6px; }
+
+    .ur-boks { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+    .kamp-info { display: flex; gap: 6px; }
+    .halvleg { color: var(--tekst-svag); font-weight: 700; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.08em; }
+    .ur {
+      font-family: Consolas, "Courier New", monospace;
+      font-size: 3.2rem;
+      font-weight: 700;
+      background: #020617;
+      color: #4ade80;
+      padding: 2px 20px;
+      border-radius: 10px;
+      font-variant-numeric: tabular-nums;
+      box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.8);
+    }
+    .ur.pause { color: var(--advarsel); }
+    .ur-knapper { display: flex; gap: 8px; }
+
+    .kampdag-gitter { flex: 1; display: grid; grid-template-columns: 1fr 360px; gap: 16px; min-height: 0; }
+
+    .kd-spiller {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 10px;
+      border-radius: 10px;
+      background: var(--panel-lys);
+      margin-bottom: 6px;
+      border: 2px solid transparent;
+    }
+    .kd-spiller.ikke-med { opacity: 0.45; }
+    .kd-spiller.udvist { border-color: var(--fare); }
+    .kd-med input { width: 18px; height: 18px; accent-color: var(--blaa); cursor: pointer; }
+    .kd-navn { flex: 1; min-width: 0; }
+    .kd-navn small { display: block; color: var(--tekst-svag); font-size: 0.78rem; }
+    .kd-knapper { display: flex; gap: 4px; flex-wrap: wrap; justify-content: flex-end; }
+    .kd-knapper button {
+      background: var(--baggrund);
+      border: 1px solid var(--kant);
+      color: var(--tekst);
+      border-radius: 8px;
+      padding: 6px 9px;
+      font: inherit;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .kd-knapper button:hover:not(:disabled) { border-color: var(--blaa); background: #1e3a5f; }
+    .kd-knapper button[data-type="maal"] { border-color: #a16207; }
+    .kd-knapper button:disabled { opacity: 0.35; cursor: not-allowed; }
+    .udv-badge {
+      display: inline-block;
+      margin-left: 6px;
+      background: var(--fare);
+      color: white;
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 1px 7px;
+      border-radius: 999px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .kampdag-hoejre { display: flex; flex-direction: column; gap: 10px; }
+    .kampdag-hoejre h3 {
+      margin: 6px 0 0;
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--tekst-svag);
+    }
+    .udv {
+      display: flex;
+      justify-content: space-between;
+      background: rgba(239, 68, 68, 0.15);
+      border-left: 4px solid var(--fare);
+      border-radius: 6px;
+      padding: 6px 10px;
+      font-size: 0.9rem;
+      margin-bottom: 4px;
+    }
+    .udv-tid { font-family: Consolas, monospace; font-weight: 700; color: #fca5a5; }
+    .haendelse-liste { flex: 1; overflow-y: auto; min-height: 120px; display: flex; flex-direction: column; gap: 4px; }
+    .haendelse { font-size: 0.85rem; padding: 5px 8px; border-radius: 6px; background: var(--panel-lys); }
+    .haendelse .tid { font-family: Consolas, monospace; color: var(--tekst-svag); margin-right: 8px; }
+    .kampdag-slut { display: flex; gap: 8px; border-top: 1px solid var(--kant); padding-top: 12px; }
+
+    /* ---------- Tegn på tavlen ---------- */
+    /* Tegnelaget ligger øverst. Normalt kan man klikke "igennem" det (pointer-events: none),
+       så spillerne stadig kan trækkes. Når man tegner, fanger laget musen. */
+    .bane .tegne-lag { box-shadow: none; border-radius: 0; z-index: 4; pointer-events: none; }
+    /* touch-action: none = fingeren tegner i stedet for at scrolle siden (tablets) */
+    .bane.tegner .tegne-lag { pointer-events: auto; cursor: crosshair; touch-action: none; }
+    .tegne-lag g { pointer-events: none; }
+    /* Viskelæder: stregerne kan klikkes, og den man peger på bliver svag */
+    .bane.visker .tegne-lag { cursor: default; }
+    .bane.visker .tegne-lag .ramme { pointer-events: stroke; cursor: pointer; }
+    .bane.visker .tegne-lag g:hover { opacity: 0.35; }
+    .bane.tegner { outline: 3px solid var(--fremhaev); outline-offset: 3px; border-radius: 12px; }
+
+    .tegne-vaerktoej {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      z-index: 6;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      background: rgba(15, 23, 42, 0.92);
+      padding: 6px;
+      border-radius: 10px;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
+    }
+    .vaerktoej {
+      width: 34px;
+      height: 34px;
+      border: none;
+      border-radius: 8px;
+      background: transparent;
+      color: white;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+    .vaerktoej:hover { background: var(--panel-lys); }
+    .vaerktoej.aktiv { background: var(--blaa); }
+    .farve {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      cursor: pointer;
+      margin: 0 2px;
+    }
+    .farve.aktiv { border-color: white; box-shadow: 0 0 0 2px var(--blaa); }
+    .skille { width: 1px; height: 24px; background: var(--kant); margin: 0 4px; }
+
+    /* ---------- Skuffen på taktiktavlen (afspil systemer) ---------- */
+    /* Lille lodret bjælke i højre kant. position: fixed = står fast på skærmen. */
+    .skuffe-tap {
+      position: fixed;
+      right: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      writing-mode: vertical-rl;          /* lodret tekst */
+      background: var(--blaa);
+      color: white;
+      border: none;
+      padding: 18px 9px;
+      border-radius: 10px 0 0 10px;
+      font: inherit;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      cursor: pointer;
+      z-index: 20;
+      box-shadow: -4px 0 14px rgba(0, 0, 0, 0.45);
+      transition: right 0.25s;
+    }
+    .skuffe-tap.aaben { right: 340px; }   /* følger med skuffen ud */
+    /* Giv plads til bjælken i højre kant, så den ikke dækker panelet */
+    .side-tavle { padding-right: 56px !important; }
+
+    .skuffe {
+      position: fixed;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      width: 340px;
+      background: var(--panel);
+      border-left: 1px solid var(--kant);
+      padding: 20px;
+      z-index: 21;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      overflow-y: auto;
+      box-shadow: -10px 0 30px rgba(0, 0, 0, 0.5);
+      transform: translateX(100%);        /* skjult: skubbet helt ud til højre */
+      transition: transform 0.25s;        /* glider blødt ind og ud */
+    }
+    .skuffe.aaben { transform: translateX(0); }
+    .skuffe-top { display: flex; justify-content: space-between; align-items: center; }
+    .skuffe-top h2 { margin: 0; font-size: 1.1rem; }
+    .skuffe-system {
+      display: block;
+      width: 100%;
+      text-align: left;
+      background: var(--panel-lys);
+      border: 2px solid transparent;
+      color: var(--tekst);
+      border-radius: 10px;
+      padding: 10px 12px;
+      margin-bottom: 8px;
+      font: inherit;
+      cursor: pointer;
+    }
+    .skuffe-system:hover { border-color: var(--kant); }
+    .skuffe-system.aktiv { border-color: var(--blaa); background: #2c3e5c; }
+    .skuffe-system small { display: block; color: var(--tekst-svag); margin-top: 2px; }
+    .skuffe-afspiller { display: flex; flex-direction: column; gap: 10px; border-top: 1px solid var(--kant); padding-top: 14px; }
+    .skuffe .afspiller { width: 100%; flex-wrap: wrap; padding: 8px; }
+    .skuffe .afspiller input[type="range"] { flex-basis: 100%; }
+
+    /* Afspilningslaget oven på tavlen */
+    .afspil-lag { position: absolute; inset: 0; z-index: 3; }
+    .bane .pile-lag { box-shadow: none; border-radius: 0; }
+    .afspil-lag .sbrik { cursor: default; }
+    .vis-bold { pointer-events: none; }
+    /* Mens et system afspilles, skjules tavlens egne pladser og modstandere */
+    .bane.afspiller-aktiv .plads,
+    .bane.afspiller-aktiv .modstander { display: none; }
+
+    /* ---------- Bekræftelsesboksen ("Er du sikker?") ---------- */
+    .dialog {
+      background: var(--panel);
+      color: var(--tekst);
+      border: 1px solid var(--kant);
+      border-radius: 14px;
+      padding: 22px 24px;
+      width: min(420px, 90vw);
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+    }
+    /* ::backdrop er det mørke lag bag boksen, der dækker resten af siden */
+    .dialog::backdrop { background: rgba(2, 6, 23, 0.65); }
+    .dialog h3 { margin: 0 0 8px; font-size: 1.15rem; }
+    .dialog p { margin: 0 0 20px; color: var(--tekst-svag); line-height: 1.5; white-space: pre-line; }
+    .dialog-knapper { display: flex; justify-content: flex-end; gap: 10px; flex-wrap: wrap; }
+
+    /* Gemte opstillinger */
+    .opstilling-gem { display: flex; gap: 6px; }
+    .lille-input {
+      flex: 1;
+      min-width: 0;
+      background: var(--baggrund);
+      border: 1px solid var(--kant);
+      color: var(--tekst);
+      border-radius: 8px;
+      padding: 7px 10px;
+      font: inherit;
+      font-size: 0.85rem;
+    }
+    .opstilling-punkt {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--panel-lys);
+      border-radius: 8px;
+      padding: 6px 6px 6px 12px;
+      margin-bottom: 6px;
+      font-size: 0.88rem;
+    }
+    .opstilling-punkt .navn { flex: 1; min-width: 0; }
+    .opstilling-punkt small { display: block; color: var(--tekst-svag); font-size: 0.75rem; }
+
+    /* Farveforklaring (legend) */
+    .forklaring { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 12px; font-size: 0.8rem; }
+    .forklaring-punkt { display: flex; align-items: center; gap: 6px; }
+    .farve-prik { width: 12px; height: 12px; border-radius: 50%; border: 1px solid white; }
+    /* =========================================================
+       iPAD OG TELEFON (responsivt design)
+       "@media (max-width: 1000px)" betyder: reglerne herunder gælder KUN,
+       når skærmen er 1000 pixels bred eller mindre (iPad på højkant og telefoner).
+       Idéen: i stedet for to kolonner ved siden af hinanden lægger vi alt
+       UNDER hinanden, og hele siden scroller i stedet for de enkelte paneler.
+       ========================================================= */
+    @media (max-width: 1000px) {
+      body { height: auto; min-height: 100vh; }
+
+      /* Toppen: titel + filknapper på første linje, fanerne under (kan scrolles sidelæns) */
+      header { flex-wrap: wrap; padding: 10px 12px; gap: 8px; }
+      .header-venstre { display: contents; }          /* "fjern" boksen, så dens børn kan placeres frit */
+      header h1 { order: 1; font-size: 1.1rem; }
+      .data-knapper { order: 2; }
+      .faner {
+        order: 3;
+        flex-basis: 100%;
+        overflow-x: auto;                             /* fanerne kan scrolles, hvis de ikke kan være der */
+        scrollbar-width: none;
+      }
+      .faner::-webkit-scrollbar { display: none; }
+      .fane { padding: 8px 14px; }
+
+      /* Alle sider: én kolonne */
+      .side-spillere, .side-tavle, .side-oversigt, .system-editor, .kampdag-gitter {
+        grid-template-columns: 1fr;
+      }
+      .side-spillere, .side-tavle, .side-oversigt, .side-systemer, .side-kampdag { padding: 12px; gap: 12px; }
+      .side-tavle { padding-right: 12px !important; }
+      /* Panelerne scroller ikke selv længere – det gør hele siden */
+      .kort, .panel, .system-venstre { overflow-y: visible; }
+
+      /* Banerne fylder bredden (men bliver ikke kæmpestore på en iPad) */
+      .bane { width: min(100%, 640px); }
+      .system-bane, .afspiller, .seer-top { width: min(100%, 640px) !important; }
+      .system-venstre { align-items: center; }
+      /* Grid-kolonner må gerne blive smallere end deres indhold (ellers stikker siden ud) */
+      .system-editor > *, .side-tavle > *, .side-spillere > *, .side-oversigt > *, .kampdag-gitter > * { min-width: 0; }
+      .afspiller { flex-wrap: wrap; }
+      .seer-knapper { flex-shrink: 1; flex-wrap: wrap; min-width: 0; }
+      .afspiller input[type="range"] { min-width: 120px; }
+
+      /* Spillere: skjul de mindst vigtige kolonner i tabellen */
+      .spiller-tabel th:nth-child(4), .spiller-tabel td:nth-child(4),
+      .spiller-tabel th:nth-child(5), .spiller-tabel td:nth-child(5) { display: none; }
+
+      /* Oversigt */
+      .scout-gitter { grid-template-columns: 1fr; }
+
+      /* Kampdag: uret øverst over hele bredden, de to scorer under */
+      .maaltavle { grid-template-columns: 1fr 1fr; padding: 12px; gap: 12px; }
+      .ur-boks { grid-column: 1 / -1; order: -1; }
+      .score { font-size: 3rem; }
+      .ur { font-size: 2.6rem; }
+      .modstander-input { width: 100%; }
+      .haendelse-liste { max-height: 300px; }
+
+      /* Skuffen må ikke være bredere end skærmen */
+      .skuffe { width: min(340px, 88vw); }
+      .skuffe-tap.aaben { right: min(340px, 88vw); }
+
+      /* Værktøjslinjen til tegning kan bryde over på to linjer */
+      .tegne-vaerktoej { flex-wrap: wrap; max-width: calc(100% - 16px); }
+    }
+
+    /* Kun telefoner (smallere end 600 px) */
+    @media (max-width: 600px) {
+      .felt-raekke { flex-wrap: wrap; }
+      .felt-hjul { flex-basis: 100%; }
+      .hjul-ramme { max-width: 140px; }
+      #felt-nummer { max-width: 140px; }
+      .liste-top { flex-wrap: wrap; gap: 10px; }
+
+      /* Spillertabellen: skjul også status-kolonnen og gør den kompakt */
+      .spiller-tabel th:nth-child(7), .spiller-tabel td:nth-child(7) { display: none; }
+      .spiller-tabel td, .spiller-tabel th { padding: 8px 6px; }
+      .rolle-chip { font-size: 0.72rem; padding: 2px 7px; }
+
+      /* Kampdag: knapperne under navnet og fordelt over hele bredden */
+      .kd-spiller { flex-wrap: wrap; }
+      .kd-knapper { flex-basis: 100%; justify-content: stretch; }
+      .kd-knapper button { flex: 1 1 auto; padding: 8px 4px; }
+      .kamp-info { flex-wrap: wrap; justify-content: center; }
+
+      .seer-knapper { flex-wrap: wrap; }
+      .dialog { padding: 18px; }
+
+      /* Mindre brikker, så banen ikke bliver overfyldt på en lille skærm */
+      .plads { width: 50px; height: 50px; }
+      .bane .brik-figur, .sbrik { width: 40px; height: 43px; }
+      .modstander { transform: translate(-50%, -50%) scale(0.65); }
+      .sbrik.modst { transform: translate(-50%, -50%) scale(0.75); }
+      .bane .brik-navn, .sbrik-navn { font-size: 0.62rem; padding: 0 5px; }
+      .brik-rolle { font-size: 0.55rem; right: -10px; }
+      .brik-advarsel, .brik-skade { width: 17px; height: 17px; font-size: 0.65rem; }
+      .skuffe-tap { padding: 12px 6px; font-size: 0.8rem; }
+      .stat-gitter { grid-template-columns: repeat(2, 1fr); }
+    }
+
+/* =========================================================
+   TILFØJELSER TIL REACT-UDGAVEN
+   ========================================================= */
+/* React lægger appen i <div id="root">. display: contents gør, at header og sider
+   opfører sig, som om de lå direkte i <body> (så body's flexbox-layout virker). */
+#root { display: contents; }
+/* Gem-status (fx "● Ikke gemt") må ikke knække over på to linjer */
+.gem-status { white-space: nowrap; }
