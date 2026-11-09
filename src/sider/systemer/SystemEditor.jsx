@@ -16,12 +16,23 @@
     systemId    – id på systemet
     nytSystem   – et helt nyt (ikke gemt) system, eller null hvis det er et gemt system
     onLuk()     – gå tilbage til oversigten
+
+  VARIANTER (forgrening, se systemVarianter.js):
+  Et system kan dele sig efter ét trin i 2-4 varianter. Vi viser og redigerer altid den
+  "effektive" tidslinje = de fælles trin + den AKTIVE variants trin. Trin nr. "index" på
+  tidslinjen kan derfor ligge enten i de fælles trin eller i den aktive variant –
+  delAfIndex() finder ud af hvilken, så ændringen havner det rigtige sted.
 */
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { useData } from "../../DataKontekst.jsx";
 import { useDialog } from "../../komponenter/Dialog.jsx";
 import { useNavigation } from "../../Navigation.jsx";
 import { startPositioner } from "../../data/standardData.js";
+import {
+  VARIANT_BOGSTAVER, MIN_VARIANTER, MAX_VARIANTER,
+  harForgrening, findVariant, effektivtSystem, delAfIndex, trinIDel, aendrDel, trinNavn,
+  antalTrinIalt, nytVariantId, opretForgrening, tilfoejVariant, sletVariant, fjernForgrening,
+} from "../../systemVarianter.js";
 import useAfspilning from "./useAfspilning.js";
 import SystemBane from "./SystemBane.jsx";
 
@@ -64,11 +75,31 @@ export default function SystemEditor({ systemId, nytSystem, onLuk }) {
   const redigerer = kladde !== null;
   // Det system vi viser: arbejdskopien når man redigerer, ellers den gemte udgave
   const system = kladde ?? gemt;
-  const antalTrin = system ? system.trin.length : 1;
+
+  /*
+    Den AKTIVE variant (kun hvis systemet har en forgrening). Det er bare et valg på skærmen
+    (useState) – det gemmes ikke i systemet. null = den første variant.
+    findVariant() falder også tilbage til den første, hvis id'et ikke findes (længere).
+  */
+  const [valgtVariantId, setValgtVariantId] = useState(null);
+  const forgrenet = system ? harForgrening(system) : false;
+  const variantId = forgrenet ? findVariant(system, valgtVariantId).id : null;
+  // Den effektive tidslinje: fælles trin + aktiv variant (uden forgrening: systemet selv)
+  const effektiv = system ? effektivtSystem(system, variantId) : null;
+  const antalTrin = effektiv ? effektiv.trin.length : 1;
 
   const afspil = useAfspilning(antalTrin);
-  const { tid, trinIndex, koerer } = afspil;
+  const { koerer } = afspil;
+  // Sikkerhed: er tidslinjen lige blevet kortere (fx en anden variant), må tiden ikke pege
+  // ud over det sidste trin – så bruger vi det sidste trin, indtil tiden er sat på plads.
+  const tid = Math.min(afspil.tid, antalTrin - 1);
+  const trinIndex = Number.isInteger(tid) ? tid : null;
   const kanRedigere = redigerer && !koerer && trinIndex !== null;
+
+  // Navnet på trin nr. index, fx "3" eller "4A" (variant-trin får variantens bogstav)
+  function navnPaaTrin(index) {
+    return system ? trinNavn(system, variantId, index) : String(index + 1);
+  }
 
   // Er systemet forsvundet (fx slettet eller erstattet ved "Hent fil")? → tilbage til oversigten
   useEffect(() => {
@@ -126,7 +157,9 @@ export default function SystemEditor({ systemId, nytSystem, onLuk }) {
     const vist = svar === "gem" ? kladde : gemt;
     setKladde(null);
     setAendret(false);
-    afspil.gaaTilTrin(Math.min(Math.round(afspil.tidRef.current), vist.trin.length - 1));
+    // Den viste udgave kan have færre trin (fx kasserede trin eller varianter) → hold tiden indenfor
+    const vistLaengde = effektivtSystem(vist, valgtVariantId).trin.length;
+    afspil.gaaTilTrin(Math.min(Math.round(afspil.tidRef.current), vistLaengde - 1));
   }
 
   // "✏️ Rediger": lav en arbejdskopi af den gemte udgave
@@ -143,7 +176,7 @@ export default function SystemEditor({ systemId, nytSystem, onLuk }) {
   async function sletSystem() {
     afspil.stop();
     if (!(await bekraeftSlet(`Slet "${system.navn}"?`,
-        `Systemet og alle dets ${system.trin.length} trin bliver slettet. Det kan ikke fortrydes.`))) return;
+        `Systemet og alle dets ${antalTrinIalt(system)} trin bliver slettet. Det kan ikke fortrydes.`))) return;
     if (!erNy) opdater(d => { d.systemer = d.systemer.filter(s => s.id !== systemId); });
     setAendret(false);
     onLuk();
@@ -158,37 +191,63 @@ export default function SystemEditor({ systemId, nytSystem, onLuk }) {
     setAendret(true);
   }
 
-  // Ændr ét trin: fn får det gamle trin og giver et nyt tilbage
-  function aendrTrin(index, fn) {
+  /*
+    Ændr trinlisten i den DEL, som trin nr. "index" (på den effektive tidslinje) ligger i –
+    enten de fælles trin eller den aktive variants trin.
+    fn(liste, i) får delens trinliste og trinets plads i den, og giver en ny liste tilbage.
+  */
+  function aendrDelVedIndex(index, fn) {
     aendrKladde(k => {
-      const gammel = k.trin[index];
-      if (!gammel) return k;
-      const nyt = fn(gammel);
-      if (nyt === gammel) return k;                // intet ændret
-      return { ...k, trin: k.trin.map((t, i) => (i === index ? nyt : t)) };
+      const del = delAfIndex(k, variantId, index);
+      if (!del) return k;
+      return aendrDel(k, del, liste => fn(liste, del.i));
     });
   }
 
-  // "⏺ Optag næste trin": kopiér det aktuelle trin og indsæt kopien lige efter
+  // Ændr ét trin: fn får det gamle trin og giver et nyt tilbage
+  function aendrTrin(index, fn) {
+    aendrDelVedIndex(index, (liste, i) => {
+      const gammel = liste[i];
+      if (!gammel) return liste;
+      const nyt = fn(gammel);
+      if (nyt === gammel) return liste;            // intet ændret
+      return liste.map((t, j) => (j === i ? nyt : t));
+    });
+  }
+
+  /*
+    "⏺ Optag næste trin": kopiér det aktuelle trin og indsæt kopien lige efter.
+    Står man på et fælles trin, bliver det nye trin også fælles. Står man i en variant,
+    kommer det nye trin ind i varianten.
+  */
   function optagTrin() {
     if (trinIndex === null) return;
     const index = trinIndex;
-    aendrKladde(k => {
-      const trin = [...k.trin];
+    aendrDelVedIndex(index, (liste, i) => {
+      const trin = [...liste];
       // Det nye trin får positionerne med, men en tom tekst (den skal man selv skrive)
-      trin.splice(index + 1, 0, { ...structuredClone(k.trin[index]), tekst: "" });   // splice indsætter i en liste
-      return { ...k, trin };
+      trin.splice(i + 1, 0, { ...structuredClone(liste[i]), tekst: "" });   // splice indsætter i en liste
+      return trin;
     });
     afspil.gaaTilTrin(index + 1);
   }
 
-  // Slet trinet med nummer "index" (0 = trin 1). Et system skal have mindst ét trin.
+  // Hvor mange trin er der i den del (fælles eller variant), som trin nr. index ligger i?
+  function antalIDel(index) {
+    const del = system && index !== null ? delAfIndex(system, variantId, index) : null;
+    return del ? trinIDel(system, del).length : antalTrin;
+  }
+
+  /*
+    Slet trinet med nummer "index" (0 = trin 1). Et system skal have mindst ét trin –
+    og med varianter skal både de fælles trin og hver variant have mindst ét trin.
+  */
   async function sletTrin(index) {
-    if (index === null || system.trin.length < 2) return;
+    if (index === null || antalIDel(index) < 2) return;
     afspil.stop();
-    if (!(await bekraeftSlet(`Slet trin ${index + 1}?`,
+    if (!(await bekraeftSlet(`Slet trin ${navnPaaTrin(index)}?`,
         "Trinet bliver fjernet fra animationen. Husk at trykke Gem bagefter."))) return;
-    aendrKladde(k => ({ ...k, trin: k.trin.filter((_, i) => i !== index) }));
+    aendrDelVedIndex(index, (liste, i) => liste.filter((_, j) => j !== i));
     afspil.gaaTilTrin(Math.max(0, index - 1));
   }
 
@@ -199,8 +258,9 @@ export default function SystemEditor({ systemId, nytSystem, onLuk }) {
   }
 
   // Skift modstanderens forsvar: modstanderne sættes på den nye formation i ALLE trin
+  // (også alle trin i alle varianter)
   async function skiftForsvar(nytForsvar) {
-    if (system.trin.length > 1) {
+    if (antalTrinIalt(system) > 1) {
       const svar = await spoerg("Skift forsvar?",
         "Modstandernes bevægelser i alle trin bliver nulstillet til den nye formation.", [
           { tekst: "Annuller", svar: false },
@@ -210,17 +270,89 @@ export default function SystemEditor({ systemId, nytSystem, onLuk }) {
       if (svar !== true) return;
     }
     const nyeModstandere = startPositioner(nytForsvar);
-    aendrKladde(k => ({
-      ...k,
-      forsvar: nytForsvar,
-      trin: k.trin.map(t => {
-        const pos = {};
-        // Behold vores spillere, fjern de gamle modstandere og sæt de nye ind
-        for (const noegle in t.pos) if (!noegle.startsWith("M")) pos[noegle] = t.pos[noegle];
-        nyeModstandere.forEach((p, i) => { pos["M" + i] = { ...p }; });
-        return { ...t, pos };
-      }),
-    }));
+    // Ét trin med de nye modstandere
+    function nulstilModstandere(t) {
+      const pos = {};
+      // Behold vores spillere, fjern de gamle modstandere og sæt de nye ind
+      for (const noegle in t.pos) if (!noegle.startsWith("M")) pos[noegle] = t.pos[noegle];
+      nyeModstandere.forEach((p, i) => { pos["M" + i] = { ...p }; });
+      return { ...t, pos };
+    }
+    aendrKladde(k => {
+      const nyt = { ...k, forsvar: nytForsvar, trin: k.trin.map(nulstilModstandere) };
+      if (harForgrening(k)) {
+        nyt.forgrening = {
+          ...k.forgrening,
+          varianter: k.forgrening.varianter.map(v => ({ ...v, trin: v.trin.map(nulstilModstandere) })),
+        };
+      }
+      return nyt;
+    });
+  }
+
+  /* ---------- Varianter (forgrening) ---------- */
+
+  // Hop til en anden variant. Tiden holdes inden for den nye (måske kortere) tidslinje.
+  function vaelgVariant(id) {
+    const nyLaengde = effektivtSystem(system, id).trin.length;
+    setValgtVariantId(id);
+    afspil.gaaTilTrin(Math.min(Math.round(afspil.tidRef.current), nyLaengde - 1));
+  }
+
+  // "🔀 Del systemet efter trin N"
+  function delSystemet() {
+    if (trinIndex === null || forgrenet) return;
+    const efter = trinIndex;
+    aendrKladde(k => opretForgrening(k, efter));
+    setValgtVariantId(null);         // null = den første variant (A)
+  }
+
+  // Ændr forgreningen (spørgsmål eller variantnavne) – kun hvis der er en
+  function aendrForgrening(fn) {
+    aendrKladde(k => (harForgrening(k) ? { ...k, forgrening: fn(k.forgrening) } : k));
+  }
+
+  // "+ Tilføj variant": den nye variant vises med det samme (på dens første trin)
+  function tilfoejVariantKlik() {
+    if (!forgrenet || system.forgrening.varianter.length >= MAX_VARIANTER) return;
+    const id = nytVariantId();
+    aendrKladde(k => tilfoejVariant(k, id));
+    setValgtVariantId(id);
+    afspil.gaaTilTrin(system.trin.length);   // første trin efter de fælles trin
+  }
+
+  // × ved en variant. Er der kun 2 varianter, tilbyder vi i stedet at fjerne forgreningen.
+  async function sletVariantKlik(variant, nr) {
+    afspil.stop();
+    if (system.forgrening.varianter.length <= MIN_VARIANTER) {
+      fjernForgreningKlik();
+      return;
+    }
+    if (!(await bekraeftSlet(`Slet variant ${VARIANT_BOGSTAVER[nr]}?`,
+        `"${variant.navn || "Uden navn"}" og dens ${variant.trin.length} trin bliver fjernet. Husk at trykke Gem bagefter.`))) return;
+    aendrKladde(k => sletVariant(k, variant.id));
+    if (variant.id === variantId) {
+      // Den viste variant forsvandt → vis den første, og stil os på det sidste fælles trin
+      setValgtVariantId(null);
+      afspil.gaaTilTrin(Math.min(Math.round(afspil.tidRef.current), system.trin.length - 1));
+    }
+  }
+
+  // "Fjern forgrening": spørg hvilken variant der skal blive en del af systemet
+  async function fjernForgreningKlik() {
+    afspil.stop();
+    const varianter = system.forgrening.varianter;
+    const svar = await spoerg("Fjern forgrening?",
+      "Vælg den variant, der skal blive en almindelig del af systemet. De andre varianter bliver slettet. " +
+      "Husk at trykke Gem bagefter.", [
+        { tekst: "Annuller", svar: null },
+        ...varianter.map((v, i) => ({ tekst: `Behold ${VARIANT_BOGSTAVER[i]}: ${v.navn || "Uden navn"}`, svar: v.id })),
+      ]);
+    if (svar === null || svar === undefined) return;
+    const nyLaengde = system.trin.length + findVariant(system, svar).trin.length;
+    aendrKladde(k => fjernForgrening(k, svar));
+    setValgtVariantId(null);
+    afspil.gaaTilTrin(Math.min(Math.round(afspil.tidRef.current), nyLaengde - 1));
   }
 
   /* ---------- Præsentation (fuld skærm) ----------
@@ -354,7 +486,7 @@ export default function SystemEditor({ systemId, nytSystem, onLuk }) {
       ? "Du står mellem to trin. Klik på et trin-nummer for at redigere."
       : trinIndex === 0
         ? "Trin 1 er startopstillingen. Træk spillerne på plads og klik på den der skal have bolden."
-        : `Trin ${trinIndex + 1}: træk spillerne derhen hvor de løber. Klik på en spiller for at aflevere til ham, ` +
+        : `Trin ${navnPaaTrin(trinIndex)}: træk spillerne derhen hvor de løber. Klik på en spiller for at aflevere til ham, ` +
           "eller træk bolden for at kaste den – slip den i målet for at skyde.";
 
   /*
@@ -362,15 +494,21 @@ export default function SystemEditor({ systemId, nytSystem, onLuk }) {
     - Står vi PÅ et trin: det trins tekst.
     - Er vi MELLEM to trin: teksten for det trin, spillerne er på vej hen til
       (den beskriver jo det, der sker lige nu).
+    Vi kigger i den effektive tidslinje, så variant-trinenes tekst også kommer med.
   */
   const tekstTrinIndex = trinIndex !== null ? trinIndex : Math.min(Math.floor(tid) + 1, antalTrin - 1);
-  const aktuelTekst = system?.trin[tekstTrinIndex]?.tekst || "";
+  const aktuelTekst = effektiv?.trin[tekstTrinIndex]?.tekst || "";
+
+  // Hvor mange trin er der i den del, man står i? (Under 2 → man må ikke slette trinet)
+  const antalIAktuelDel = antalIDel(trinIndex);
+  const varianter = forgrenet ? system.forgrening.varianter : [];
 
   return (
     <div className={"system-editor" + (redigerer ? "" : " seer")}>
 
       {/* VENSTRE: banen + afspilleren */}
-      <section className={"system-venstre" + (praesentation ? " praesentation" : "") + (visTekst ? " med-tekst" : "")}>
+      <section className={"system-venstre" + (praesentation ? " praesentation" : "") + (visTekst ? " med-tekst" : "") +
+                          (forgrenet ? " med-varianter" : "")}>
         {/* Topbjælke der KUN vises i seer-tilstand (styres af CSS) */}
         <div className="seer-top">
           <div>
@@ -388,20 +526,39 @@ export default function SystemEditor({ systemId, nytSystem, onLuk }) {
           <p className="tast-hjaelp">Mellemrum = start/pause · ← → = forrige/næste trin · Esc = luk</p>
         </div>
 
+        {/* Banen får den effektive tidslinje (fælles trin + aktiv variant) */}
         <SystemBane
-          system={system}
+          system={effektiv}
           tid={tid}
           trinIndex={trinIndex}
           kanRedigere={kanRedigere}
           aendrTrin={aendrTrin}
           spillerNavn={spillerNavn}
+          trinNavn={navnPaaTrin}
         />
 
         {/* 💬 Tekstbjælken under banen – kun når tekst-hjælpen er slået til */}
         {visTekst && (
           <div className={"trin-tekst" + (aktuelTekst ? "" : " tom")}>
-            <b>💬 Trin {tekstTrinIndex + 1}:</b>{" "}
+            <b>💬 Trin {navnPaaTrin(tekstTrinIndex)}:</b>{" "}
             {aktuelTekst || "Ingen tekst til dette trin."}
+          </div>
+        )}
+
+        {/* 🔀 Har systemet varianter, vælger man her, hvilken der skal afspilles (før man trykker Start) */}
+        {forgrenet && (
+          <div className="variant-vaelger">
+            <span className="variant-spoergsmaal">🔀 {system.forgrening.spoergsmaal || "Vælg variant"}</span>
+            <select
+              className="lille-valg"
+              title="Hvilken variant skal afspilles?"
+              value={variantId}
+              onChange={(e) => vaelgVariant(e.target.value)}
+            >
+              {varianter.map((v, i) => (
+                <option key={v.id} value={v.id}>{VARIANT_BOGSTAVER[i]}: {v.navn || "Uden navn"}</option>
+              ))}
+            </select>
           </div>
         )}
 
@@ -486,37 +643,46 @@ export default function SystemEditor({ systemId, nytSystem, onLuk }) {
           </label>
 
           <h3>Trin</h3>
+          {/* Trin-knapperne: de fælles trin, så ◆ (hvor systemet deler sig) og den aktive variants trin */}
           <div className="trin-knapper">
-            {system.trin.map((_, index) => (
-              <button
-                key={index}
-                className={"trin-knap" + (index === trinIndex ? " aktiv" : "")}
-                title={`Gå til trin ${index + 1}`}
-                onClick={() => afspil.gaaTilTrin(index)}
-              >
-                {index + 1}
-                {/* Et lille × til at slette trinet (kun hvis der er mere end ét trin) */}
-                {antalTrin > 1 && (
-                  <span
-                    className="trin-slet"
-                    title={`Slet trin ${index + 1}`}
-                    onClick={(e) => { e.stopPropagation(); sletTrin(index); }}
-                  >×</span>
-                )}
-              </button>
-            ))}
+            {effektiv.trin.map((_, index) => {
+              const erVariantTrin = forgrenet && index >= system.trin.length;
+              return (
+                // Fragment = en "usynlig" indpakning, så vi kan returnere ◆ og knappen sammen
+                <Fragment key={index}>
+                  {forgrenet && index === system.trin.length && (
+                    <span className="forgrening-maerke" title={`Her deler systemet sig: ${system.forgrening.spoergsmaal}`}>◆</span>
+                  )}
+                  <button
+                    className={"trin-knap" + (erVariantTrin ? " variant-trin" : "") + (index === trinIndex ? " aktiv" : "")}
+                    title={`Gå til trin ${navnPaaTrin(index)}`}
+                    onClick={() => afspil.gaaTilTrin(index)}
+                  >
+                    {navnPaaTrin(index)}
+                    {/* Et lille × til at slette trinet (kun hvis der er mere end ét trin i delen) */}
+                    {antalIDel(index) > 1 && (
+                      <span
+                        className="trin-slet"
+                        title={`Slet trin ${navnPaaTrin(index)}`}
+                        onClick={(e) => { e.stopPropagation(); sletTrin(index); }}
+                      >×</span>
+                    )}
+                  </button>
+                </Fragment>
+              );
+            })}
           </div>
           <p className="hjaelp">{trinHjaelp}</p>
 
           {/* Tekst til det trin, man står på (vises under banen, når 💬 Tekst er slået til) */}
           {trinIndex !== null && (
-            <label className="felt">💬 Tekst til trin {trinIndex + 1}
+            <label className="felt">💬 Tekst til trin {navnPaaTrin(trinIndex)}
               <textarea
                 rows={2}
                 maxLength={200}
                 disabled={!kanRedigere}
                 placeholder="Fx: C binder 3'eren – kig efter VB i ryggen"
-                value={system.trin[trinIndex]?.tekst || ""}
+                value={effektiv.trin[trinIndex]?.tekst || ""}
                 onChange={(e) => { const tekst = e.target.value; aendrTrin(trinIndex, t => ({ ...t, tekst })); }}
               />
             </label>
@@ -526,14 +692,91 @@ export default function SystemEditor({ systemId, nytSystem, onLuk }) {
             <button className="knap knap-primaer" disabled={!kanRedigere} onClick={optagTrin}>⏺ Optag næste trin</button>
             <button
               className="knap knap-fare"
-              disabled={!kanRedigere || antalTrin < 2}
-              title={antalTrin < 2 ? "Et system skal have mindst ét trin" : ""}
+              disabled={!kanRedigere || antalIAktuelDel < 2}
+              title={antalIAktuelDel < 2
+                ? (forgrenet ? "De fælles trin og hver variant skal have mindst ét trin" : "Et system skal have mindst ét trin")
+                : ""}
               onClick={() => sletTrin(trinIndex)}
             >
-              {trinIndex !== null ? `🗑 Slet trin ${trinIndex + 1}` : "🗑 Slet trin"}
+              {trinIndex !== null ? `🗑 Slet trin ${navnPaaTrin(trinIndex)}` : "🗑 Slet trin"}
             </button>
           </div>
           <button className="knap" disabled={!kanRedigere} onClick={skydPaaMaal}>🥅 Skyd på mål</button>
+
+          {/* ---------- 🔀 Varianter ---------- */}
+          <h3>🔀 Varianter</h3>
+          {!forgrenet ? (
+            <>
+              <p className="hjaelp">
+                Gør forsvaret forskellige ting? Del systemet efter et trin, så det kan fortsætte på
+                2-4 forskellige måder (varianter). Trinene før delingen er fælles for alle varianter.
+              </p>
+              <button className="knap" disabled={!kanRedigere} onClick={delSystemet}>
+                {trinIndex !== null ? `🔀 Del systemet efter trin ${trinIndex + 1}` : "🔀 Del systemet efter et trin"}
+              </button>
+            </>
+          ) : (
+            <div className="varianter">
+              <label className="felt">Spørgsmål efter trin {system.trin.length}
+                <input
+                  type="text"
+                  maxLength={80}
+                  placeholder="Fx: Træder 2'eren ud?"
+                  value={system.forgrening.spoergsmaal}
+                  onChange={(e) => { const spoergsmaal = e.target.value; aendrForgrening(f => ({ ...f, spoergsmaal })); }}
+                />
+              </label>
+
+              {/* Én række pr. variant: bogstav, navn, "Vis" og × */}
+              {varianter.map((v, i) => {
+                const aktiv = v.id === variantId;
+                return (
+                  <div key={v.id} className={"variant-raekke" + (aktiv ? " aktiv" : "")}>
+                    <span className="variant-bogstav">{VARIANT_BOGSTAVER[i]}</span>
+                    <input
+                      type="text"
+                      maxLength={40}
+                      aria-label={`Navn på variant ${VARIANT_BOGSTAVER[i]}`}
+                      placeholder="Fx: Ja – aflever til fløjen"
+                      value={v.navn}
+                      onChange={(e) => {
+                        const navn = e.target.value;
+                        aendrForgrening(f => ({ ...f, varianter: f.varianter.map(x => (x.id === v.id ? { ...x, navn } : x)) }));
+                      }}
+                    />
+                    <button
+                      className={"knap variant-vis" + (aktiv ? " aktiv-knap" : "")}
+                      title="Vis og rediger denne variant"
+                      onClick={() => vaelgVariant(v.id)}
+                    >
+                      {aktiv ? "👁 Vises" : "Vis"}
+                    </button>
+                    <button
+                      className="slet-x"
+                      title={varianter.length <= MIN_VARIANTER ? "Fjern forgrening" : `Slet variant ${VARIANT_BOGSTAVER[i]}`}
+                      onClick={() => sletVariantKlik(v, i)}
+                    >×</button>
+                  </div>
+                );
+              })}
+
+              <div className="knap-raekke">
+                <button
+                  className="knap"
+                  disabled={varianter.length >= MAX_VARIANTER}
+                  title={varianter.length >= MAX_VARIANTER ? `Højst ${MAX_VARIANTER} varianter` : ""}
+                  onClick={tilfoejVariantKlik}
+                >
+                  + Tilføj variant
+                </button>
+                <button className="knap knap-fare" onClick={fjernForgreningKlik}>Fjern forgrening</button>
+              </div>
+              <p className="hjaelp">
+                Trinene efter ◆ hører til den variant, der vises. Vælg en anden variant med <b>Vis</b> for at
+                redigere den. Ved afspilning vælger man varianten i menuen over afspilleren.
+              </p>
+            </div>
+          )}
 
           <h3>Sådan optager du</h3>
           <ol className="hjaelp">

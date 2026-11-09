@@ -34,6 +34,36 @@ export function sikrSpiller(s) {
 }
 
 /*
+  Sørger for at et systems forgrening (varianter, se systemVarianter.js) er i orden:
+    - forgrening skal være et objekt med en liste "varianter"
+    - en variant skal være et objekt med en trinliste med mindst ét trin
+    - der skal være 2-4 gyldige varianter – ellers fjernes forgreningen helt
+  Gamle systemer uden forgrening kommer uændret igennem.
+*/
+export function sikrForgrening(s) {
+  if (!("forgrening" in s)) return s;
+  const f = s.forgrening;
+  const brugteIder = new Set();
+  const varianter = (f && typeof f === "object" && Array.isArray(f.varianter) ? f.varianter : [])
+    .filter(v => v && typeof v === "object" && Array.isArray(v.trin) && v.trin.length > 0)
+    .slice(0, 4)                                          // højst 4 varianter
+    .map((v, i) => {
+      // Id'et skal være tekst (det sammenlignes med værdien fra en <select>, som altid er tekst).
+      // Mangler det (eller er det brugt før), laver vi et nyt – id'erne skal være unikke.
+      const id = v.id != null && !brugteIder.has(String(v.id)) ? String(v.id) : `v${i}-${Date.now()}`;
+      brugteIder.add(id);
+      return { ...v, id, navn: String(v.navn ?? "") };
+    });
+  const kopi = { ...s };
+  if (varianter.length < 2) {
+    delete kopi.forgrening;                               // ugyldig → bare et almindeligt system
+  } else {
+    kopi.forgrening = { spoergsmaal: String(f.spoergsmaal ?? ""), varianter };
+  }
+  return kopi;
+}
+
+/*
   Lægger "ind" (data fra hukommelsen eller en fil) oven på "grundlag" og giver
   et nyt, rent data-objekt tilbage. Felter der mangler i "ind", tages fra grundlaget.
   Ukendte roller, forkerte tal o.l. bliver sorteret fra, så appen aldrig går ned.
@@ -70,7 +100,9 @@ export function normaliser(ind, grundlag) {
     d.modstander = { formation: ind.modstander.formation || "", positioner: ind.modstander.positioner };
   }
   if (Array.isArray(ind.systemer)) {
-    d.systemer = ind.systemer.filter(s => s && Array.isArray(s.trin) && s.trin.length > 0);
+    d.systemer = ind.systemer
+      .filter(s => s && Array.isArray(s.trin) && s.trin.length > 0)
+      .map(sikrForgrening);
   }
   if (Array.isArray(ind.modstandere)) {
     d.modstandere = ind.modstandere

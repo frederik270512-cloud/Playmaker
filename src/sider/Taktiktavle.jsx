@@ -337,6 +337,7 @@ export default function Taktiktavle() {
             <AfspilLag
               system={afspilning.system}
               tid={afspilning.tid}
+              trinNavn={afspilning.trinNavn}
               opstilling={data.opstilling}
               spillere={data.spillere}
               pladsPositioner={data.pladsPositioner}

@@ -1441,3 +1441,111 @@
   .system-editor .system-venstre.med-tekst .afspiller,
   .system-editor .system-venstre.med-tekst .trin-tekst { width: min(100%, 640px) !important; }
 }
+
+/* =========================================================
+   🔀 VARIANTER (forgrening af et system)
+   ========================================================= */
+
+/* Rækken "🔀 Træder 2'eren ud? [A: ... ▾]" over afspilleren (og i skuffen på tavlen) */
+.variant-vaelger {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 10px;
+  background: var(--panel);
+  border-radius: 12px;
+  padding: 8px 10px;
+  box-sizing: border-box;
+  width: min(100%, calc((100vh - 190px) * 230 / 252));
+}
+.variant-spoergsmaal { font-weight: 600; font-size: 0.9rem; }
+.variant-vaelger select { flex: 1; min-width: 140px; }
+.skuffe .variant-vaelger { width: 100%; background: var(--baggrund); }
+
+/*
+  Rækken over afspilleren tager lidt plads i højden. Derfor gør vi banen en anelse mindre,
+  når systemet har varianter (samme regler som ovenfor – bare ca. 50px mere fratrukket).
+*/
+.system-editor .system-venstre.med-varianter .system-bane,
+.system-editor .system-venstre.med-varianter .afspiller,
+.system-editor .system-venstre.med-varianter .trin-tekst,
+.system-editor .system-venstre.med-varianter .variant-vaelger { width: min(100%, calc((100vh - 240px) * 230 / 252)); }
+.system-editor.seer .system-venstre.med-varianter .system-bane,
+.system-editor.seer .system-venstre.med-varianter .afspiller,
+.system-editor.seer .system-venstre.med-varianter .trin-tekst,
+.system-editor.seer .system-venstre.med-varianter .variant-vaelger { width: min(100%, calc((100vh - 320px) * 230 / 252)); }
+.system-editor .system-venstre.praesentation.med-varianter .system-bane,
+.system-editor .system-venstre.praesentation.med-varianter .afspiller,
+.system-editor .system-venstre.praesentation.med-varianter .trin-tekst,
+.system-editor .system-venstre.praesentation.med-varianter .variant-vaelger { width: min(100%, calc((100vh - 240px) * 230 / 252)); }
+/* ... og når tekstbjælken OGSÅ vises */
+.system-editor .system-venstre.med-tekst.med-varianter .system-bane,
+.system-editor .system-venstre.med-tekst.med-varianter .afspiller,
+.system-editor .system-venstre.med-tekst.med-varianter .trin-tekst,
+.system-editor .system-venstre.med-tekst.med-varianter .variant-vaelger { width: min(100%, calc((100vh - 305px) * 230 / 252)); }
+.system-editor.seer .system-venstre.med-tekst.med-varianter .system-bane,
+.system-editor.seer .system-venstre.med-tekst.med-varianter .afspiller,
+.system-editor.seer .system-venstre.med-tekst.med-varianter .trin-tekst,
+.system-editor.seer .system-venstre.med-tekst.med-varianter .variant-vaelger { width: min(100%, calc((100vh - 385px) * 230 / 252)); }
+.system-editor .system-venstre.praesentation.med-tekst.med-varianter .system-bane,
+.system-editor .system-venstre.praesentation.med-tekst.med-varianter .afspiller,
+.system-editor .system-venstre.praesentation.med-tekst.med-varianter .trin-tekst,
+.system-editor .system-venstre.praesentation.med-tekst.med-varianter .variant-vaelger { width: min(100%, calc((100vh - 315px) * 230 / 252)); }
+@media (max-width: 1000px) {
+  .variant-vaelger,
+  .system-editor .system-venstre.med-varianter .system-bane,
+  .system-editor .system-venstre.med-varianter .afspiller,
+  .system-editor .system-venstre.med-varianter .trin-tekst,
+  .system-editor .system-venstre.med-varianter .variant-vaelger { width: min(100%, 640px) !important; }
+  .skuffe .variant-vaelger { width: 100% !important; }
+}
+
+/* Trin-knapperne: ◆ markerer hvor systemet deler sig, variant-trin har en stiplet kant */
+.forgrening-maerke {
+  display: inline-flex;
+  align-items: center;
+  color: var(--fremhaev);
+  font-size: 1.1rem;
+  padding: 0 2px;
+  cursor: help;
+}
+.trin-knap.variant-trin { border-style: dashed; border-color: var(--fremhaev); }
+.trin-knap.variant-trin.aktiv { border-style: solid; border-color: var(--blaa); }
+
+/* Panelet: én række pr. variant (bogstav, navn, Vis, ×) */
+.varianter { display: flex; flex-direction: column; gap: 8px; }
+.variant-raekke {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+}
+.variant-raekke.aktiv { border-color: var(--fremhaev); background: var(--panel-lys); }
+.variant-raekke input {
+  flex: 1;
+  min-width: 0;
+  background: var(--baggrund);
+  border: 1px solid var(--kant);
+  color: var(--tekst);
+  padding: 7px 9px;
+  border-radius: 8px;
+  font: inherit;
+  font-size: 0.9rem;
+}
+.variant-raekke input:focus { outline: 2px solid var(--blaa); border-color: transparent; }
+.variant-bogstav {
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--fremhaev);
+  color: #1e1e1e;
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+.variant-vis { flex-shrink: 0; padding: 6px 10px; font-size: 0.85rem; }

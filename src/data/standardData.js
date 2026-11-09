@@ -98,7 +98,32 @@ export function eksempelSystem() {
   trin4.tekst = "VB afslutter med et hoppeskud i målets højre side.";
   trin4.pos.VB = { x: 104, y: 94 };
   trin4.bold = { x: 109, y: -5 };     // et punkt inde i målet = skud
-  s.trin.push(trin2, trin3, trin4);
+
+  /*
+    Variant B: 3'eren træder ud på C → så er der plads ude på venstre fløj.
+    C afleverer til VF, der starter ind fra hjørnet og skyder.
+  */
+  const b1 = structuredClone(trin2);
+  b1.tekst = "3'eren træder ud på C. C afleverer hurtigt til VF, der starter ind fra hjørnet.";
+  b1.pos.M3 = { x: 70, y: 96 };       // 3'eren går helt ud på C
+  b1.pos.M2 = { x: 46, y: 66 };       // 2'eren må dække lidt ind mod midten
+  b1.pos.VF = { x: 30, y: 32 };
+  b1.bold = "VF";
+  const b2 = structuredClone(b1);
+  b2.tekst = "VF hopper ind i feltet og skyder ved den nærmeste stolpe.";
+  b2.pos.VF = { x: 44, y: 24 };
+  b2.pos.M1 = { x: 30, y: 30 };       // fløjforsvareren når ikke at lukke
+  b2.bold = { x: 90, y: -5 };         // skud ved den nærmeste stolpe
+
+  // De fælles trin er trin 1-2. Derefter deler systemet sig i to varianter.
+  s.trin.push(trin2);
+  s.forgrening = {
+    spoergsmaal: "Træder 3'eren ud på C?",
+    varianter: [
+      { id: "eksempel-a", navn: "Nej – VB krydser bag om", trin: [trin3, trin4] },
+      { id: "eksempel-b", navn: "Ja – aflever til VF", trin: [b1, b2] },
+    ],
+  };
   return s;
 }
 

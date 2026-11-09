@@ -8,6 +8,17 @@
 import { useData } from "../../DataKontekst.jsx";
 import { useDialog } from "../../komponenter/Dialog.jsx";
 import MiniBane from "./MiniBane.jsx";
+import { harForgrening, effektivtSystem, antalTrinIalt } from "../../systemVarianter.js";
+
+/*
+  Teksten under kortet, fx "4 trin · 6-0-forsvar" eller "4 trin · 2 varianter · 6-0-forsvar".
+  Har systemet varianter, tæller vi de fælles trin + den første variant (det man ser på tegningen).
+*/
+function metaTekst(s) {
+  const forsvar = s.forsvar ? s.forsvar + "-forsvar" : "uden forsvar";
+  if (!harForgrening(s)) return `${s.trin.length} trin · ${forsvar}`;
+  return `${effektivtSystem(s, null).trin.length} trin · ${s.forgrening.varianter.length} varianter · ${forsvar}`;
+}
 
 export default function SystemOversigt({ onAabn, onNyt }) {
   const { data, opdater } = useData();
@@ -18,7 +29,7 @@ export default function SystemOversigt({ onAabn, onNyt }) {
     // stopPropagation: klikket må ikke OGSÅ nå ud til kortet (så ville systemet åbne)
     e.stopPropagation();
     if (!(await bekraeftSlet(`Slet "${system.navn}"?`,
-        `Systemet og alle dets ${system.trin.length} trin bliver slettet. Det kan ikke fortrydes.`))) return;
+        `Systemet og alle dets ${antalTrinIalt(system)} trin bliver slettet. Det kan ikke fortrydes.`))) return;
     opdater(d => { d.systemer = d.systemer.filter(s => s.id !== system.id); });
   }
 
@@ -43,7 +54,7 @@ export default function SystemOversigt({ onAabn, onNyt }) {
               <h3>{s.navn}</h3>
               <p>{s.beskrivelse || "Ingen beskrivelse"}</p>
               <div className="meta">
-                {s.trin.length} trin · {s.forsvar ? s.forsvar + "-forsvar" : "uden forsvar"}
+                {metaTekst(s)}
               </div>
             </div>
             <button className="kort-slet" title="Slet system" onClick={(e) => sletSystem(e, s)}>🗑</button>

@@ -2,11 +2,15 @@
   MINIBANE – en lille tegning af et system til kortene i oversigten:
   banen, alle i deres startposition (trin 1) som prikker, en streg for hver af vores
   spilleres løbevej gennem alle trin, og boldens vej som en stiplet gul streg.
+  Har systemet varianter, tegnes de fælles trin + den FØRSTE variant.
 */
 import { ANGRIBERE, ROLLER, HJEMME, MODSTANDER_FARVE, MODSTANDER_KANT } from "../../data/konstanter.js";
 import { boldPunkt } from "../../animation.js";
+import { effektivtSystem } from "../../systemVarianter.js";
 
-export default function MiniBane({ system }) {
+export default function MiniBane({ system: helt }) {
+  // null som variant = den første variant (uden varianter får vi bare systemet selv)
+  const system = effektivtSystem(helt, null);
   // Løbeveje: punkterne "x,y" for spilleren i hvert trin. En "polyline" er en streg gennem flere punkter.
   const loebeveje = ANGRIBERE.map((noegle) => {
     const punkter = system.trin.filter(t => t.pos[noegle]).map(t => `${t.pos[noegle].x},${t.pos[noegle].y}`);

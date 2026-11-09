@@ -9,6 +9,11 @@
     kanRedigere  – må man flytte brikker/bold lige nu?
     aendrTrin(index, fn) – ændr trin nr. index: fn får det gamle trin og giver et NYT trin tilbage
     spillerNavn(noegle)  – navnet på spilleren der står på pladsen (fra taktiktavlen), eller ""
+    trinNavn(index)      – (valgfri) navnet på et trin til skiltet, fx "4A" for et variant-trin.
+                           Uden den hedder trinene bare 1, 2, 3 ...
+
+  Har systemet varianter, får banen det "effektive" system (fælles trin + den valgte
+  variants trin i én liste – se systemVarianter.js), så her er alt som før.
 */
 import { useRef, useState } from "react";
 import BaneSVG from "../../komponenter/BaneSVG.jsx";
@@ -50,7 +55,12 @@ function landBold(bold, pos) {
   return bold;
 }
 
-export default function SystemBane({ system, tid, trinIndex, kanRedigere, aendrTrin, spillerNavn }) {
+// Standard: trin nr. 0 hedder "1", trin nr. 1 hedder "2" osv.
+const almindeligtTrinNavn = (index) => String(index + 1);
+
+export default function SystemBane({
+  system, tid, trinIndex, kanRedigere, aendrTrin, spillerNavn, trinNavn = almindeligtTrinNavn,
+}) {
   // useRef til selve banens <div>, så vi kan omregne musens pixels til banens koordinater
   const baneRef = useRef(null);
   // Oplysninger om det træk der er i gang (behøver ikke vises → ref i stedet for state)
@@ -150,8 +160,8 @@ export default function SystemBane({ system, tid, trinIndex, kanRedigere, aendrT
       </PileLag>;
 
   const skilt = trinIndex !== null
-    ? `Trin ${trinIndex + 1} af ${system.trin.length}` + (erSkud(system.trin[trinIndex].bold) ? " · 🥅 Skud på mål!" : "")
-    : `Trin ${t.fraIndex + 1} → ${t.fraIndex + 2}`;
+    ? `Trin ${trinNavn(trinIndex)} af ${system.trin.length}` + (erSkud(system.trin[trinIndex].bold) ? " · 🥅 Skud på mål!" : "")
+    : `Trin ${trinNavn(t.fraIndex)} → ${trinNavn(t.fraIndex + 1)}`;
 
   return (
     // "laast" = man kan ikke redigere lige nu (seer, afspilning eller mellem to trin)

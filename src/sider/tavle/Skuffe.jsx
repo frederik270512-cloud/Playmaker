@@ -9,9 +9,15 @@
 
   Hooken bruges i Taktiktavle, som giver resultatet videre til både AfspilLag og Skuffe
   (de står forskellige steder på siden, men skal dele den samme tilstand).
+
+  Har systemet varianter (se systemVarianter.js), vælger man varianten i skuffen.
+  Hooken giver så det "effektive" system videre: fælles trin + den valgte variants trin.
 */
 import { useEffect, useRef, useState } from "react";
 import { tilstandVed, boldPosition } from "../../animation.js";
+import {
+  VARIANT_BOGSTAVER, harForgrening, findVariant, effektivtSystem, trinNavn as variantTrinNavn,
+} from "../../systemVarianter.js";
 import { tilProcent } from "../../hjaelpere.js";
 import { HjemmeFigur, ModstanderFigur } from "../../komponenter/Figur.jsx";
 import { TrinPile, PileLag } from "../../komponenter/Pile.jsx";
@@ -29,7 +35,13 @@ export function useTavleAfspilning(systemer) {
     setTid(ny);
   }
 
-  const system = systemer.find(s => s.id === systemId) || null;   // null = intet afspilles
+  // Den valgte variant (null = den første). Bruges kun, hvis systemet har varianter.
+  const [valgtVariantId, setValgtVariantId] = useState(null);
+
+  const heltSystem = systemer.find(s => s.id === systemId) || null;   // null = intet afspilles
+  const variantId = heltSystem && harForgrening(heltSystem) ? findVariant(heltSystem, valgtVariantId).id : null;
+  // Det der afspilles: fælles trin + valgt variant (uden varianter: bare systemet selv)
+  const system = heltSystem ? effektivtSystem(heltSystem, variantId) : null;
   const sidsteTrin = system ? system.trin.length - 1 : 0;
   // Har systemet fået færre trin, siden det blev valgt, holder vi tiden inden for systemet
   const visTid = Math.min(tid, sidsteTrin);
@@ -65,8 +77,22 @@ export function useTavleAfspilning(systemer) {
 
   function vaelg(id) {
     setSystemId(id);
+    setValgtVariantId(null);          // et nyt system starter med sin første variant
     setKoerer(false);
     saetTid(0);
+  }
+
+  // Vælg en anden variant: afspilningen pauses, og tiden holdes inden for den nye tidslinje
+  function vaelgVariant(id) {
+    if (!heltSystem) return;
+    setValgtVariantId(id);
+    setKoerer(false);
+    saetTid(Math.min(tidRef.current, effektivtSystem(heltSystem, id).trin.length - 1));
+  }
+
+  // Navnet på et trin til skiltet, fx "3" eller "4A"
+  function trinNavn(index) {
+    return heltSystem ? variantTrinNavn(heltSystem, variantId, index) : String(index + 1);
   }
 
   // Start / pause – man kan pause på ALLE tidspunkter, også midt mellem to trin
@@ -97,14 +123,20 @@ export function useTavleAfspilning(systemer) {
     setSystemId(null);
   }
 
-  return { system, tid: visTid, koerer, sekPrTrin, setSekPrTrin, vaelg, startPause, tilStart, spol, stop };
+  return {
+    system, heltSystem, variantId, trinNavn, vaelgVariant,
+    tid: visTid, koerer, sekPrTrin, setSekPrTrin, vaelg, startPause, tilStart, spol, stop,
+  };
 }
+
+// Standard: trin nr. 0 hedder "1", trin nr. 1 hedder "2" osv.
+const almindeligtTrinNavn = (index) => String(index + 1);
 
 /*
   Brikkerne til afspilningen: vores spillere fra tavlen + systemets modstandere.
   Står der ingen spiller på en plads, vises pladsens kode (fx "VB") på trøjen.
 */
-export function AfspilLag({ system, tid, opstilling, spillere, pladsPositioner }) {
+export function AfspilLag({ system, tid, opstilling, spillere, pladsPositioner, trinNavn = almindeligtTrinNavn }) {
   const findSpiller = id => spillere.find(s => s.id === id);
   const t = tilstandVed(system, tid);
   const paaTrin = Number.isInteger(tid);
@@ -116,7 +148,7 @@ export function AfspilLag({ system, tid, opstilling, spillere, pladsPositioner }
     : { fra: system.trin[t.fraIndex], til: system.trin[t.fraIndex + 1], synlighed: 0.45 };
 
   const skilt = `${system.navn} · ` +
-    (paaTrin ? `Trin ${tid + 1} af ${system.trin.length}` : `Trin ${t.fraIndex + 1} → ${t.fraIndex + 2}`);
+    (paaTrin ? `Trin ${trinNavn(tid)} af ${system.trin.length}` : `Trin ${trinNavn(t.fraIndex)} → ${trinNavn(t.fraIndex + 1)}`);
 
   const mv = findSpiller(opstilling.MV);
 
@@ -163,7 +195,10 @@ export function AfspilLag({ system, tid, opstilling, spillere, pladsPositioner }
 // Bjælken "◀ Systemer" og selve skuffen
 export default function Skuffe({ systemer, afspilning }) {
   const [aaben, setAaben] = useState(false);
-  const { system, tid, koerer, sekPrTrin, setSekPrTrin, vaelg, startPause, tilStart, spol, stop } = afspilning;
+  const {
+    system, heltSystem, variantId, vaelgVariant,
+    tid, koerer, sekPrTrin, setSekPrTrin, vaelg, startPause, tilStart, spol, stop,
+  } = afspilning;
 
   return (
     <>
@@ -190,7 +225,12 @@ export default function Skuffe({ systemer, afspilning }) {
               onClick={() => vaelg(s.id)}
             >
               <b>{s.navn}</b>
-              <small>{s.trin.length} trin · {s.forsvar ? s.forsvar + "-forsvar" : "uden forsvar"}</small>
+              <small>
+                {harForgrening(s)
+                  ? `${effektivtSystem(s, null).trin.length} trin · ${s.forgrening.varianter.length} varianter`
+                  : `${s.trin.length} trin`}
+                {" · "}{s.forsvar ? s.forsvar + "-forsvar" : "uden forsvar"}
+              </small>
             </button>
           ))}
         </div>
@@ -199,6 +239,22 @@ export default function Skuffe({ systemer, afspilning }) {
         {system && (
           <div className="skuffe-afspiller">
             <b>{system.navn}</b>
+            {/* 🔀 Systemet har varianter: vælg hvilken der skal afspilles */}
+            {harForgrening(heltSystem) && (
+              <div className="variant-vaelger">
+                <span className="variant-spoergsmaal">🔀 {heltSystem.forgrening.spoergsmaal || "Vælg variant"}</span>
+                <select
+                  className="lille-valg"
+                  title="Hvilken variant skal afspilles?"
+                  value={variantId}
+                  onChange={e => vaelgVariant(e.target.value)}
+                >
+                  {heltSystem.forgrening.varianter.map((v, i) => (
+                    <option key={v.id} value={v.id}>{VARIANT_BOGSTAVER[i]}: {v.navn || "Uden navn"}</option>
+                  ))}
+                </select>
+              </div>
+            )}
             <div className="afspiller">
               <button className="knap" title="Tilbage til start" onClick={tilStart}>⏮</button>
               <button className="knap knap-primaer afspil-knap" onClick={startPause} disabled={system.trin.length < 2}>
