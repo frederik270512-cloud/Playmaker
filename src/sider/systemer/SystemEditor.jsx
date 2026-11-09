@@ -35,6 +35,7 @@ import {
 } from "../../systemVarianter.js";
 import useAfspilning from "./useAfspilning.js";
 import SystemBane from "./SystemBane.jsx";
+import Quiz from "./Quiz.jsx";
 
 // Det samme spørgsmål bruges ved "← Alle systemer", "✓ Færdig" og skift af fane
 const FORLAD_KNAPPER = [
@@ -54,6 +55,8 @@ export default function SystemEditor({ systemId, nytSystem, onLuk }) {
   const [aendret, setAendret] = useState(Boolean(nytSystem)); // "● Ikke gemt"
   const [sidstGemt, setSidstGemt] = useState(null);         // klokkeslæt, fx "14:32"
   const [praesentation, setPraesentation] = useState(false);
+  // 🎯 Quiz (kun i seer-tilstand): når den er slået til, vises Quiz.jsx i stedet for banen og afspilleren
+  const [quiz, setQuiz] = useState(false);
   const navnRef = useRef(null);
 
   /*
@@ -95,6 +98,8 @@ export default function SystemEditor({ systemId, nytSystem, onLuk }) {
   const tid = Math.min(afspil.tid, antalTrin - 1);
   const trinIndex = Number.isInteger(tid) ? tid : null;
   const kanRedigere = redigerer && !koerer && trinIndex !== null;
+  // Quizzen findes kun i seer-tilstand (sikkerhed, hvis man skulle komme i redigering imens)
+  const quizAktiv = quiz && !redigerer;
 
   // Navnet på trin nr. index, fx "3" eller "4A" (variant-trin får variantens bogstav)
   function navnPaaTrin(index) {
@@ -166,6 +171,7 @@ export default function SystemEditor({ systemId, nytSystem, onLuk }) {
   function startRedigering() {
     afspil.stop();
     skiftPraesentation(false);
+    setQuiz(false);
     setKladde(structuredClone(gemt));
     setAendret(false);
     // Står vi midt mellem to trin, hopper vi til nærmeste trin, så man kan redigere med det samme
@@ -355,6 +361,22 @@ export default function SystemEditor({ systemId, nytSystem, onLuk }) {
     afspil.gaaTilTrin(Math.min(Math.round(afspil.tidRef.current), nyLaengde - 1));
   }
 
+  /* ---------- 🎯 Quiz ----------
+     Quizzen bruger det EFFEKTIVE system (fælles trin + den valgte variant).
+     Den læser kun systemet – den ændrer intet i data.systemer. */
+
+  function startQuiz() {
+    if (redigerer) return;           // kun i seer-tilstand
+    afspil.stop();
+    setQuiz(true);
+  }
+
+  // "Afslut quiz" / Esc: tilbage til almindelig visning på trin 1
+  function afslutQuiz() {
+    setQuiz(false);
+    afspil.gaaTilTrin(0);
+  }
+
   /* ---------- Præsentation (fuld skærm) ----------
      Vi lægger klassen "praesentation" på venstre del, så den dækker hele vinduet.
      Derudover beder vi browseren om rigtig fuld skærm. Siger den nej, virker det stadig. */
@@ -434,6 +456,16 @@ export default function SystemEditor({ systemId, nytSystem, onLuk }) {
       const felt = document.activeElement;
       if (felt && ["INPUT", "TEXTAREA", "SELECT"].includes(felt.tagName)) return;
 
+      // Under quizzen må mellemrum og pilene IKKE starte afspilningen.
+      // Esc lukker først præsentationen (hvis den er åben) og ellers quizzen.
+      if (quizAktiv) {
+        if (e.key === "Escape") {
+          if (praesentation) skiftPraesentation(false);
+          else afslutQuiz();
+        }
+        return;
+      }
+
       if (e.key === " ") {
         e.preventDefault();            // mellemrum må ikke scrolle siden
         afspil.startEllerPause();
@@ -507,8 +539,11 @@ export default function SystemEditor({ systemId, nytSystem, onLuk }) {
     <div className={"system-editor" + (redigerer ? "" : " seer")}>
 
       {/* VENSTRE: banen + afspilleren */}
-      <section className={"system-venstre" + (praesentation ? " praesentation" : "") + (visTekst ? " med-tekst" : "") +
-                          (forgrenet ? " med-varianter" : "")}>
+      {/* Under quizzen er der altid en bjælke under banen (som 💬-tekstbjælken) og ingen
+          variant-menu – derfor "med-tekst" og ikke "med-varianter", så banen får den rigtige størrelse */}
+      <section className={"system-venstre" + (praesentation ? " praesentation" : "") +
+                          (quizAktiv || visTekst ? " med-tekst" : "") +
+                          (forgrenet && !quizAktiv ? " med-varianter" : "") + (quizAktiv ? " quiz-aktiv" : "")}>
         {/* Topbjælke der KUN vises i seer-tilstand (styres af CSS) */}
         <div className="seer-top">
           <div>
@@ -521,11 +556,37 @@ export default function SystemEditor({ systemId, nytSystem, onLuk }) {
             <button className="knap" title="Vis i fuld skærm" onClick={() => skiftPraesentation(!praesentation)}>
               {praesentation ? "✕ Luk præsentation" : "⛶ Præsentation"}
             </button>
-            <button className="knap knap-primaer" id="rediger-knap" onClick={startRedigering}>✏️ Rediger</button>
+            <button
+              className={"knap" + (quizAktiv ? " aktiv-knap" : "")}
+              title={quizAktiv ? "Afslut quizzen (Esc)" : "Gæt hvor spillerne løber"}
+              onClick={quizAktiv ? afslutQuiz : startQuiz}
+            >
+              {quizAktiv ? "✕ Afslut quiz" : "🎯 Quiz"}
+            </button>
+            {/* Under quizzen skjuler vi Rediger – man afslutter quizzen først */}
+            {!quizAktiv && (
+              <button className="knap knap-primaer" id="rediger-knap" onClick={startRedigering}>✏️ Rediger</button>
+            )}
           </div>
-          <p className="tast-hjaelp">Mellemrum = start/pause · ← → = forrige/næste trin · Esc = luk</p>
+          <p className="tast-hjaelp">
+            {quizAktiv
+              ? "Træk den gule spiller · Esc = luk præsentation / afslut quiz"
+              : "Mellemrum = start/pause · ← → = forrige/næste trin · Esc = luk"}
+          </p>
         </div>
 
+        {/* 🎯 Quizzen tager banens og afspillerens plads. "key" gør, at quizzen starter forfra
+            (en helt ny komponent), hvis man skulle skifte variant. */}
+        {quizAktiv ? (
+          <Quiz
+            key={variantId ?? "ingen"}
+            system={effektiv}
+            spillerNavn={spillerNavn}
+            trinNavn={navnPaaTrin}
+            onAfslut={afslutQuiz}
+          />
+        ) : (
+        <>
         {/* Banen får den effektive tidslinje (fælles trin + aktiv variant) */}
         <SystemBane
           system={effektiv}
@@ -597,6 +658,8 @@ export default function SystemEditor({ systemId, nytSystem, onLuk }) {
             💬 Tekst
           </button>
         </div>
+        </>
+        )}
       </section>
 
       {/* HØJRE: panelet til redigering (skjules af CSS i seer-tilstand) */}

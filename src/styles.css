@@ -1549,3 +1549,42 @@
   font-size: 0.85rem;
 }
 .variant-vis { flex-shrink: 0; padding: 6px 10px; font-size: 0.85rem; }
+
+/* =========================================================
+   🎯 QUIZ – "Hvor skal spilleren løbe?" (Quiz.jsx)
+   ========================================================= */
+
+/* Banen er "laast" under quizzen, men den spurgte spiller kan gribes */
+.system-bane.laast .sbrik.quiz-traekbar { cursor: grab; }
+.system-bane.laast .sbrik.quiz-traekbar.trukket { cursor: grabbing; }
+.sbrik.quiz-spurgt { z-index: 4; }
+
+/* Den spurgte spiller får en pulserende gul ring. ::after er et ekstra "element", som CSS
+   tegner bag om brikken – så skal vi ikke tilføje noget i HTML'en. */
+.sbrik.quiz-spurgt::after {
+  content: "";
+  position: absolute;
+  inset: -7px;
+  border-radius: 50%;
+  border: 3px solid var(--fremhaev);
+  box-shadow: 0 0 10px rgba(253, 224, 71, 0.7);
+  pointer-events: none;
+  animation: quiz-ring 1.3s ease-in-out infinite;
+}
+@keyframes quiz-ring {
+  0%, 100% { transform: scale(0.92); opacity: 1; }
+  50%      { transform: scale(1.12); opacity: 0.45; }
+}
+
+/* Skyggen der viser, hvor man gættede (kan ikke gribes) */
+.sbrik.quiz-gaet-maerke { opacity: 0.4; pointer-events: none; z-index: 1; filter: grayscale(0.4); }
+
+/* Bjælken under banen (bygger videre på .trin-tekst) */
+.quiz-bjaelke { display: flex; flex-direction: column; gap: 8px; }
+.quiz-hjaelp { color: var(--tekst-svag); font-size: 0.85rem; }
+.quiz-resultat { font-weight: 700; font-size: 1.05rem; }
+.quiz-bjaelke.quiz-rigtigt { border-left-color: var(--ok); }
+.quiz-bjaelke.quiz-rigtigt .quiz-resultat { color: #86efac; }
+.quiz-bjaelke.quiz-forkert { border-left-color: var(--fare); }
+.quiz-bjaelke.quiz-forkert .quiz-resultat { color: #fca5a5; }
+.quiz-knapper { display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap; }
