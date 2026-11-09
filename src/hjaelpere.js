@@ -63,6 +63,50 @@ export function skaermTilBane(element, clientX, clientY) {
   };
 }
 
+/*
+  HEL BANE (kontra/omstilling) – en hel bane står på HØJKANT (lodret), så den er lige så bred
+  som den halve bane. Banen går fra (0,0) til (200,400), 1 enhed = 10 cm (40 x 20 m):
+    y = 0   → modstandernes mål øverst (det vi angriber – præcis som på den halve bane)
+    y = 200 → midterlinjen
+    y = 400 → vores eget mål nederst
+  Den øverste halvdel har altså NØJAGTIG de samme koordinater som den halve bane.
+  Derfor virker mål-kassen (MAAL), skud og forsvarsformationerne uændret.
+*/
+export const HEL_BANE_LAENGDE = 400;
+export const VIEWBOX_HEL = { x: -15, y: -30, bredde: 230, hoejde: 460 };
+
+// Den rigtige viewBox for et system: hel bane eller halv bane
+export function baneViewBox(helBane) {
+  return helBane ? VIEWBOX_HEL : VIEWBOX;
+}
+
+// viewBox som tekst til <svg viewBox="...">, fx "-15 -30 230 460"
+export function viewBoxTekst(vb) {
+  return `${vb.x} ${vb.y} ${vb.bredde} ${vb.hoejde}`;
+}
+
+// Som tilProcent – men for en valgfri viewBox (fx VIEWBOX_HEL)
+export function tilProcentI(vb, x, y) {
+  return {
+    left: ((x - vb.x) / vb.bredde) * 100 + "%",
+    top: ((y - vb.y) / vb.hoejde) * 100 + "%",
+  };
+}
+
+// Som skaermTilBane – men for en valgfri viewBox (fx VIEWBOX_HEL)
+export function skaermTilBaneI(vb, element, clientX, clientY) {
+  const boks = element.getBoundingClientRect();
+  return {
+    x: vb.x + ((clientX - boks.left) / boks.width) * vb.bredde,
+    y: vb.y + ((clientY - boks.top) / boks.height) * vb.hoejde,
+  };
+}
+
+// Hvor langt ned må en brik/bold trækkes? (lidt uden for banen – også ind i målet nederst)
+export function bundGraense(helBane) {
+  return helBane ? HEL_BANE_LAENGDE + 10 : 210;
+}
+
 // Holder et tal inden for et interval
 export function begraens(tal, min, max) {
   return Math.min(max, Math.max(min, tal));

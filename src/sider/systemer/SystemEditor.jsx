@@ -22,6 +22,9 @@
   "effektive" tidslinje = de fælles trin + den AKTIVE variants trin. Trin nr. "index" på
   tidslinjen kan derfor ligge enten i de fælles trin eller i den aktive variant –
   delAfIndex() finder ud af hvilken, så ændringen havner det rigtige sted.
+
+  HEL BANE: et system med helBane: true vises på hele banen (kontra/omstilling, se helBane.js).
+  🎬 GEM SOM VIDEO: optager den effektive tidslinje som en .webm-fil (se videoEksport.js).
 */
 import { Fragment, useEffect, useRef, useState } from "react";
 import { useData } from "../../DataKontekst.jsx";
@@ -37,6 +40,8 @@ import useAfspilning from "./useAfspilning.js";
 import SystemBane from "./SystemBane.jsx";
 import Quiz from "./Quiz.jsx";
 import { erForsvarssystem } from "../../systemRoller.js";
+import { skiftBane, brugerNederstePart } from "./helBane.js";
+import { videoFormat, optagVideo, videoFilnavn, hentFil } from "./videoEksport.js";
 
 // Det samme spørgsmål bruges ved "← Alle systemer", "✓ Færdig" og skift af fane
 const FORLAD_KNAPPER = [
@@ -59,6 +64,16 @@ export default function SystemEditor({ systemId, nytSystem, onLuk }) {
   // 🎯 Quiz (kun i seer-tilstand): når den er slået til, vises Quiz.jsx i stedet for banen og afspilleren
   const [quiz, setQuiz] = useState(false);
   const navnRef = useRef(null);
+
+  /*
+    🎬 Gem som video: optagelse = null (ingen optagelse) eller hvor langt vi er (0-1).
+    optagStyring er en AbortController – med den kan vi stoppe optagelsen (Annuller,
+    eller hvis man forlader siden midt i en optagelse).
+  */
+  const [optagelse, setOptagelse] = useState(null);
+  const optagStyring = useRef(null);
+  const optager = optagelse !== null;
+  useEffect(() => () => optagStyring.current?.abort(), []);   // siden lukkes → stop optagelsen
 
   /*
     💬 TEKSTHJÆLP: viser trinnets tekst i en bjælke under banen.
@@ -306,6 +321,76 @@ export default function SystemEditor({ systemId, nytSystem, onLuk }) {
     aendrKladde(k => ({ ...k, type: nyType === "forsvar" ? "forsvar" : "angreb" }));
   }
 
+  /*
+    🔄 Skift bane (halv ↔ hel). Se skiftBane() i helBane.js:
+      halv → hel: positionerne bliver, hvor de er (de står bare i den øverste halvdel).
+      hel → halv: alt på den anden side af midterlinjen flyttes op til midterlinjen, og vores
+                  målmand (VM) fjernes. Det spørger vi om først, hvis det rammer nogen.
+  */
+  async function skiftBaneKlik(vaerdi) {
+    const helBane = vaerdi === "hel";
+    if (!helBane && brugerNederstePart(system)) {
+      const svar = await spoerg("Skift til halv bane?",
+        "Spillere og bold på den anden side af midterlinjen bliver flyttet op til midterlinjen " +
+        "i alle trin, og målmanden med bolden fjernes. Husk at trykke Gem bagefter.", [
+          { tekst: "Annuller", svar: false },
+          { tekst: "Skift til halv bane", svar: true, stil: "knap-primaer" },
+        ]);
+      // Menuen er "controlled" (value fra kladden), så den hopper selv tilbage ved Annuller
+      if (svar !== true) return;
+    }
+    aendrKladde(k => skiftBane(k, helBane));
+  }
+
+  /* ---------- 🎬 Gem som video (se videoEksport.js) ----------
+     Vi optager den EFFEKTIVE tidslinje (fælles trin + den valgte variant) med den valgte
+     hastighed. 💬-teksten kommer med, hvis den er slået til. Imens er knapperne slået fra. */
+  async function gemSomVideo() {
+    if (optager) return;
+    afspil.stop();
+    if (!videoFormat()) {
+      await spoerg("Video virker ikke her",
+        "Din browser kan desværre ikke optage video. Prøv i Chrome, Edge eller Firefox på en computer.", [
+          { tekst: "OK", svar: true, stil: "knap-primaer" },
+        ]);
+      return;
+    }
+    // Husk systemet og variantens navne, som de er NU (de kan ikke ændres under optagelsen)
+    const optagSystem = effektiv;
+    const helt = system;
+    const vid = variantId;
+    const styring = new AbortController();
+    optagStyring.current = styring;
+    setOptagelse(0);
+    try {
+      const resultat = await optagVideo({
+        system: optagSystem,
+        sekPrTrin: afspil.sekPrTrin,
+        visTekst,
+        trinNavn: (i) => trinNavn(helt, vid, i),
+        spillerNavn,
+        signal: styring.signal,
+        onFremskridt: (andel) => setOptagelse(andel),
+      });
+      if (resultat) hentFil(resultat.blob, videoFilnavn(helt.navn, resultat.endelse));
+    } catch (fejl) {
+      console.warn("Videoen kunne ikke laves:", fejl);
+      if (!styring.signal.aborted) {
+        await spoerg("Videoen kunne ikke laves", "Noget gik galt under optagelsen. Prøv igen – eller i en anden browser.", [
+          { tekst: "OK", svar: true, stil: "knap-primaer" },
+        ]);
+      }
+    } finally {
+      optagStyring.current = null;
+      setOptagelse(null);
+    }
+  }
+
+  // "Annuller" under optagelsen
+  function annullerVideo() {
+    optagStyring.current?.abort();
+  }
+
   /* ---------- Varianter (forgrening) ---------- */
 
   // Hop til en anden variant. Tiden holdes inden for den nye (måske kortere) tidslinje.
@@ -454,6 +539,7 @@ export default function SystemEditor({ systemId, nytSystem, onLuk }) {
   useEffect(() => {
     tastRef.current = (e) => {
       if (document.querySelector("dialog[open]")) return;    // en "er du sikker?"-boks er åben
+      if (optager) return;                                    // 🎬 der optages video – tasterne er slået fra
 
       // Ctrl+S (Cmd+S på Mac) virker også mens man skriver i navnefeltet
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
@@ -499,8 +585,9 @@ export default function SystemEditor({ systemId, nytSystem, onLuk }) {
   if (!system) return null;
 
   // Spillerens navn under figuren (fra opstillingen på taktiktavlen)
+  // "VM" (målmanden på hel bane) er målmanden fra tavlens MV-plads
   function spillerNavn(noegle) {
-    const id = data.opstilling[noegle];
+    const id = data.opstilling[noegle === "VM" ? "MV" : noegle];
     const spiller = data.spillere.find(s => s.id === id);
     return spiller ? spiller.navn : "";
   }
@@ -545,15 +632,20 @@ export default function SystemEditor({ systemId, nytSystem, onLuk }) {
   const antalIAktuelDel = antalIDel(trinIndex);
   // Forsvarssystem? (vi er forsvaret – se systemRoller.js)
   const forsvarssystem = erForsvarssystem(system);
+  // Er systemet på hel bane (kontra/omstilling – se helBane.js)?
+  const helBane = system.helBane === true;
   const varianter = forgrenet ? system.forgrening.varianter : [];
 
   return (
-    <div className={"system-editor" + (redigerer ? "" : " seer")}>
+    // "optager" = der optages video lige nu (knapperne er slået fra – se Systemer.css)
+    <div className={"system-editor" + (redigerer ? "" : " seer") + (optager ? " optager" : "")}>
 
       {/* VENSTRE: banen + afspilleren */}
       {/* Under quizzen er der altid en bjælke under banen (som 💬-tekstbjælken) og ingen
-          variant-menu – derfor "med-tekst" og ikke "med-varianter", så banen får den rigtige størrelse */}
+          variant-menu – derfor "med-tekst" og ikke "med-varianter", så banen får den rigtige størrelse.
+          "hel-bane" = systemet er på hel bane (banen er højere – se Systemer.css) */}
       <section className={"system-venstre" + (praesentation ? " praesentation" : "") +
+                          (helBane ? " hel-bane" : "") +
                           (quizAktiv || visTekst ? " med-tekst" : "") +
                           (forgrenet && !quizAktiv ? " med-varianter" : "") + (quizAktiv ? " quiz-aktiv" : "")}>
         {/* Topbjælke der KUN vises i seer-tilstand (styres af CSS) */}
@@ -562,6 +654,7 @@ export default function SystemEditor({ systemId, nytSystem, onLuk }) {
             <h2>
               {system.navn}
               {forsvarssystem && <span className="system-maerke forsvar">🛡️ Forsvar</span>}
+              {helBane && <span className="system-maerke hel-bane">🔄 Hel bane</span>}
             </h2>
             <p className="opsummering">{system.beskrivelse}</p>
           </div>
@@ -578,6 +671,13 @@ export default function SystemEditor({ systemId, nytSystem, onLuk }) {
             >
               {quizAktiv ? "✕ Afslut quiz" : "🎯 Quiz"}
             </button>
+            {/* 🎬 Optag systemet som en video (ikke under quizzen) */}
+            {!quizAktiv && (
+              <button className="knap" title="Gem systemet som en video (.webm) – fx til holdets chat"
+                      disabled={optager} onClick={gemSomVideo}>
+                🎬 Gem som video
+              </button>
+            )}
             {/* Under quizzen skjuler vi Rediger – man afslutter quizzen først */}
             {!quizAktiv && (
               <button className="knap knap-primaer" id="rediger-knap" onClick={startRedigering}>✏️ Rediger</button>
@@ -589,6 +689,15 @@ export default function SystemEditor({ systemId, nytSystem, onLuk }) {
               : "Mellemrum = start/pause · ← → = forrige/næste trin · Esc = luk"}
           </p>
         </div>
+
+        {/* 🎬 Mens videoen optages: hvor langt vi er + Annuller */}
+        {optager && (
+          <div className="video-status" role="status">
+            <span>🎬 Optager… {Math.round(optagelse * 100)} %</span>
+            <div className="video-linje"><div style={{ width: `${Math.round(optagelse * 100)}%` }} /></div>
+            <button className="knap" onClick={annullerVideo}>Annuller</button>
+          </div>
+        )}
 
         {/* 🎯 Quizzen tager banens og afspillerens plads. "key" gør, at quizzen starter forfra
             (en helt ny komponent), hvis man skulle skifte variant. */}
@@ -715,6 +824,13 @@ export default function SystemEditor({ systemId, nytSystem, onLuk }) {
             <select value={forsvarssystem ? "forsvar" : "angreb"} onChange={(e) => skiftType(e.target.value)}>
               <option value="angreb">⚔️ Angreb – vi har bolden</option>
               <option value="forsvar">🛡️ Forsvar – modstanderen har bolden</option>
+            </select>
+          </label>
+          {/* Halv bane (almindelige systemer) eller hel bane (kontra/omstilling) */}
+          <label className="felt">Bane
+            <select value={helBane ? "hel" : "halv"} onChange={(e) => skiftBaneKlik(e.target.value)}>
+              <option value="halv">Halv bane</option>
+              <option value="hel">🔄 Hel bane (kontra/omstilling)</option>
             </select>
           </label>
           {/* I et forsvarssystem er formationen VORES forsvar (de gule trøjer) */}
@@ -862,6 +978,15 @@ export default function SystemEditor({ systemId, nytSystem, onLuk }) {
               </p>
             </div>
           )}
+
+          {/* ---------- 🎬 Video ---------- */}
+          <h3>🎬 Video</h3>
+          <p className="hjaelp">
+            Gem systemet som en video, du kan sende til holdet. Videoen viser {forgrenet ? "den variant, der vises nu, " : ""}
+            fra trin 1 til sidste trin med den valgte hastighed{visTekst ? " – med 💬-teksten" : ""}.
+            Det, du ikke har gemt, kommer også med.
+          </p>
+          <button className="knap" disabled={optager} onClick={gemSomVideo}>🎬 Gem som video</button>
 
           <h3>Sådan optager du</h3>
           <ol className="hjaelp">

@@ -26,7 +26,7 @@ import { SystemFigur } from "../../komponenter/Figur.jsx";
 import { Pil, PileLag } from "../../komponenter/Pile.jsx";
 import { voresNoegler, erVores, erForsvarssystem, brikNavn, rolleInfo } from "../../systemRoller.js";
 import { tilstandVed, boldPosition, boldPunkt } from "../../animation.js";
-import { tilProcent, skaermTilBane, begraens, decimal } from "../../hjaelpere.js";
+import { tilProcentI, skaermTilBaneI, begraens, decimal, baneViewBox, viewBoxTekst, bundGraense } from "../../hjaelpere.js";
 
 // Banens enheder: 10 enheder = 1 meter
 const MIN_LOEB = 15;          // et løb skal være mindst 1,5 m for at blive et spørgsmål
@@ -67,6 +67,12 @@ export default function Quiz({ system, spillerNavn, trinNavn, onAfslut }) {
     ikke ved hver eneste tegning (fx 60 gange i sekundet under animationen).
   */
   const spoergsmaal = useMemo(() => bygSpoergsmaal(system), [system]);
+
+  // Hel bane (kontra)? Så bruger vi den hele banes koordinater (se helBane.js)
+  const helBane = system.helBane === true;
+  const vb = baneViewBox(helBane);
+  const tilProcent = (x, y) => tilProcentI(vb, x, y);
+  const skaermTilBane = (element, x, y) => skaermTilBaneI(vb, element, x, y);
 
   const [nr, setNr] = useState(0);              // hvilket spørgsmål (0 = det første)
   const [fase, setFase] = useState("gaet");
@@ -133,7 +139,7 @@ export default function Quiz({ system, spillerNavn, trinNavn, onAfslut }) {
     // begraens = hold brikken inde på (og lige omkring) banen
     setGaet({
       x: begraens(p.x + tr.forskydning.x, -10, 210),
-      y: begraens(p.y + tr.forskydning.y, -20, 210),
+      y: begraens(p.y + tr.forskydning.y, -20, bundGraense(helBane)),
     });
   }
 
@@ -210,13 +216,13 @@ export default function Quiz({ system, spillerNavn, trinNavn, onAfslut }) {
   return (
     <>
       {/* "laast" giver de normale brikker en almindelig markør og gør bolden u-gribelig */}
-      <div ref={baneRef} className="system-bane laast quiz-bane">
+      <div ref={baneRef} className={"system-bane laast quiz-bane" + (helBane ? " hel" : "")}>
         {/* Banen SKAL være det første barn (CSS giver den skygge) */}
-        <BaneSVG />
+        <BaneSVG helBane={helBane} forsvar={erForsvarssystem(system)} />
 
         {/* Efter svaret: en stiplet pil fra gættet til det rigtige sted (grøn = rigtigt, rød = forkert) */}
         {resultat && (
-          <PileLag>
+          <PileLag viewBox={viewBoxTekst(vb)}>
             <Pil a={gaet} b={resultat.rigtig} farve={resultat.rigtigt ? "#22c55e" : "#ef4444"} stiplet />
           </PileLag>
         )}

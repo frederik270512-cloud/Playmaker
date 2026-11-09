@@ -14,6 +14,9 @@
 
   Har systemet varianter, får banen det "effektive" system (fælles trin + den valgte
   variants trin i én liste – se systemVarianter.js), så her er alt som før.
+
+  Har systemet helBane: true, tegnes den HELE bane (se helBane.js og BaneSVG.jsx), og
+  alle omregninger mellem skærm og bane bruger den hele banes viewBox.
 */
 import { useRef, useState } from "react";
 import BaneSVG from "../../komponenter/BaneSVG.jsx";
@@ -22,7 +25,8 @@ import { PileLag, TrinPile } from "../../komponenter/Pile.jsx";
 import { MAAL } from "../../data/konstanter.js";
 import { angribereIPos, erForsvarssystem, erVores, brikNavn, rolleInfo } from "../../systemRoller.js";
 import { tilstandVed, boldPosition, erSkud } from "../../animation.js";
-import { tilProcent, skaermTilBane, begraens } from "../../hjaelpere.js";
+import { tilProcentI, skaermTilBaneI, begraens, baneViewBox, viewBoxTekst, bundGraense } from "../../hjaelpere.js";
+import "./Systemer.css";
 
 /*
   Når man slipper bolden:
@@ -74,6 +78,16 @@ export default function SystemBane({
   const bp = boldPosition(t);
   // Forsvarssystem? Så er VI forsvaret (se systemRoller.js) – trøjer og pile bytter rolle
   const forsvar = erForsvarssystem(system);
+  /*
+    Hel bane (kontra/omstilling)? Så bruger vi den hele banes koordinater (se helBane.js):
+    vb = banens viewBox, bund = hvor langt ned man må trække (ind i vores eget mål).
+    tilProcent/skaermTilBane er her de udgaver, der passer til den rigtige viewBox.
+  */
+  const helBane = system.helBane === true;
+  const vb = baneViewBox(helBane);
+  const bund = bundGraense(helBane);
+  const tilProcent = (x, y) => tilProcentI(vb, x, y);
+  const skaermTilBane = (element, x, y) => skaermTilBaneI(vb, element, x, y);
 
   /* ---------- Træk brikker (Pointer Events: virker med mus, pen og finger) ----------
      pointerdown → man trykker, pointermove → musen flyttes, pointerup → man slipper.
@@ -110,7 +124,7 @@ export default function SystemBane({
     const p = skaermTilBane(baneRef.current, e.clientX, e.clientY);
     const nyPos = {
       x: begraens(p.x + tr.forskydning.x, -10, 210),
-      y: begraens(p.y + tr.forskydning.y, -20, 210),
+      y: begraens(p.y + tr.forskydning.y, -20, bund),
     };
     // Kun den lokale arbejdskopi ændres – ikke hele appens data
     aendrTrin(tr.index, trin => ({ ...trin, pos: { ...trin.pos, [tr.noegle]: nyPos } }));
@@ -141,7 +155,7 @@ export default function SystemBane({
     if (!tr || tr.type !== "bold") return;
     tr.erFlyttet = true;
     const p = skaermTilBane(baneRef.current, e.clientX, e.clientY);
-    const bold = { x: begraens(p.x, -10, 210), y: begraens(p.y, -15, 210) };
+    const bold = { x: begraens(p.x, -10, 210), y: begraens(p.y, -15, bund) };
     aendrTrin(tr.index, trin => ({ ...trin, bold }));
   }
 
@@ -156,11 +170,11 @@ export default function SystemBane({
      Står vi på et trin, viser vi hvad der skete for at komme HERTIL (tydeligt).
      Mellem to trin viser vi svagt det, der er ved at ske. */
   const pile = trinIndex !== null
-    ? <PileLag synlighed={1}>
+    ? <PileLag synlighed={1} viewBox={viewBoxTekst(vb)}>
         <TrinPile fraTrin={trinIndex > 0 ? system.trin[trinIndex - 1] : null} tilTrin={system.trin[trinIndex]}
                   forsvar={forsvar} />
       </PileLag>
-    : <PileLag synlighed={0.45}>
+    : <PileLag synlighed={0.45} viewBox={viewBoxTekst(vb)}>
         <TrinPile fraTrin={system.trin[t.fraIndex]} tilTrin={system.trin[t.fraIndex + 1]} forsvar={forsvar} />
       </PileLag>;
 
@@ -170,9 +184,10 @@ export default function SystemBane({
 
   return (
     // "laast" = man kan ikke redigere lige nu (seer, afspilning eller mellem to trin)
-    <div ref={baneRef} className={"system-bane" + (kanRedigere ? "" : " laast")}>
+    // "hel" = hel bane (højere og smallere – se Systemer.css)
+    <div ref={baneRef} className={"system-bane" + (kanRedigere ? "" : " laast") + (helBane ? " hel" : "")}>
       {/* Banen SKAL være det første barn (CSS: .system-bane > svg:first-child giver skygge) */}
-      <BaneSVG />
+      <BaneSVG helBane={helBane} forsvar={forsvar} />
       {pile}
 
       {/* Bolden – glider fra hvor den var (spiller eller punkt) til hvor den skal hen */}
@@ -203,6 +218,9 @@ export default function SystemBane({
           titel = forsvar
             ? (nr === 0 ? "Vores målmand" : `Vores forsvarer ${nr}`)
             : (nr === 0 ? "Modstanderens målmand" : `Forsvarsspiller ${nr}`);
+        } else if (noegle === "VM") {
+          // Målmanden for holdet med bolden (kun på hel bane)
+          titel = forsvar ? "Modstanderens målmand" : "Vores målmand – klik for at give bolden";
         } else {
           titel = (forsvar ? `Modstanderens ${brikNavn(noegle)}` : rolleInfo(noegle).navn) + " – klik for at give bolden";
         }

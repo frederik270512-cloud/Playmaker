@@ -1,19 +1,41 @@
 /*
-  HÅNDBOLDBANEN – en halv bane set oppefra, tegnet som SVG.
+  HÅNDBOLDBANEN – set oppefra, tegnet som SVG.
 
+  HALV BANE (standard, <BaneSVG />):
   viewBox="-15 -30 230 252": koordinatsystemet starter i (-15,-30) og er 230 bredt og 252 højt.
   Selve banen går fra (0,0) til (200,200) – 1 enhed = 10 cm (en halv bane er 20 x 20 m).
   Modstandernes mål står øverst (y = 0), midterlinjen nederst (y = 200),
   og under midterlinjen tegner vi vores eget mål.
 
+  HEL BANE (<BaneSVG helBane />) – bruges af systemer på hel bane (kontra/omstilling):
+  Banen står på højkant: (0,0) til (200,400), viewBox="-15 -30 230 460" (se VIEWBOX_HEL i hjaelpere.js).
+  Den øverste halvdel er nøjagtig som den halve bane. Midterlinjen ligger ved y = 200,
+  og vores eget mål står nederst ved y = 400 – med sit eget 6 m-felt og 9 m-linje (spejlvendt).
+    forsvar – (valgfri) et forsvarssystem: så er målet nederst modstandernes, ikke vores.
+
   useId() giver unikke id'er, så flere baner på samme side ikke "låner" hinandens mønstre.
 */
 import { useId } from "react";
 
-export default function BaneSVG() {
+// Ét mål: nettet + stolperne (hvide med røde striber). y = mållinjen, retning = -1 (op) eller 1 (ned)
+function Maal({ y, retning, net }) {
+  const bag = y + 10 * retning;                         // målets bagkant
+  const omrids = `M 85 ${y} L 85 ${bag} L 115 ${bag} L 115 ${y}`;
+  return (
+    <>
+      <rect x="85" y={Math.min(y, bag)} width="30" height="10" fill={`url(#${net})`} />
+      <path d={omrids} fill="none" stroke="white" strokeWidth="1.8" />
+      <path d={omrids} fill="none" stroke="#dc2626" strokeWidth="1.8" strokeDasharray="2 2" />
+    </>
+  );
+}
+
+export default function BaneSVG({ helBane = false, forsvar = false }) {
   const id = useId().replace(/:/g, "");   // id'er må ikke indeholde ":" i url(#...)
   const net = `net-${id}`;
   const klip = `klip-${id}`;
+
+  if (helBane) return <HelBane net={net} klip={klip} forsvar={forsvar} />;
 
   return (
     <svg className="bane-svg" viewBox="-15 -30 230 252" xmlns="http://www.w3.org/2000/svg">
@@ -59,6 +81,55 @@ export default function BaneSVG() {
       <path d="M 85 200 L 85 210 L 115 210 L 115 200" fill="none" stroke="#dc2626" strokeWidth="1.8" strokeDasharray="2 2" />
       <text x="121" y="208" fill="rgba(255,255,255,0.6)" fontSize="6" fontWeight="600"
             fontFamily="Segoe UI, sans-serif">Eget mål</text>
+    </svg>
+  );
+}
+
+/*
+  Den HELE bane (lodret). Den nederste halvdel er en spejling af den øverste:
+  y bliver til 400 - y. Derfor vender buerne den anden vej (sweep-flaget 0 → 1).
+*/
+function HelBane({ net, klip, forsvar }) {
+  return (
+    <svg className="bane-svg" viewBox="-15 -30 230 460" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <pattern id={net} width="3" height="3" patternUnits="userSpaceOnUse">
+          <path d="M 3 0 L 0 0 0 3" fill="none" stroke="rgba(255,255,255,0.55)" strokeWidth="0.4" />
+        </pattern>
+        <clipPath id={klip}>
+          <rect x="0" y="0" width="200" height="400" />
+        </clipPath>
+      </defs>
+
+      {/* Gulvet og spillefladen (40 x 20 m) */}
+      <rect x="-15" y="-30" width="230" height="460" fill="#1d4e89" />
+      <rect x="0" y="0" width="200" height="400" fill="#2f6fb3" />
+
+      {/* Øverst: modstandernes 6 m-felt, 9 m-linje, 7 m- og 4 m-mærke */}
+      <path d="M 25 0 A 60 60 0 0 0 85 60 L 115 60 A 60 60 0 0 0 175 0 Z"
+            fill="#e98b3a" stroke="white" strokeWidth="1" />
+      <path d="M 10 0 A 90 90 0 0 0 85 90 L 115 90 A 90 90 0 0 0 190 0"
+            fill="none" stroke="white" strokeWidth="1" strokeDasharray="5 4" clipPath={`url(#${klip})`} />
+      <line x1="95" y1="70" x2="105" y2="70" stroke="white" strokeWidth="1" />
+      <line x1="99.25" y1="40" x2="100.75" y2="40" stroke="white" strokeWidth="1" />
+
+      {/* Nederst: det samme spejlvendt (y → 400 - y) */}
+      <path d="M 25 400 A 60 60 0 0 1 85 340 L 115 340 A 60 60 0 0 1 175 400 Z"
+            fill="#e98b3a" stroke="white" strokeWidth="1" />
+      <path d="M 10 400 A 90 90 0 0 1 85 310 L 115 310 A 90 90 0 0 1 190 400"
+            fill="none" stroke="white" strokeWidth="1" strokeDasharray="5 4" clipPath={`url(#${klip})`} />
+      <line x1="95" y1="330" x2="105" y2="330" stroke="white" strokeWidth="1" />
+      <line x1="99.25" y1="360" x2="100.75" y2="360" stroke="white" strokeWidth="1" />
+
+      {/* Yderlinjer og midterlinje (midt på banen) */}
+      <rect x="0" y="0" width="200" height="400" fill="none" stroke="white" strokeWidth="1.2" />
+      <line x1="0" y1="200" x2="200" y2="200" stroke="white" strokeWidth="1.5" />
+
+      {/* Målene: modstandernes øverst (vi angriber opad), vores eget nederst */}
+      <Maal y={0} retning={-1} net={net} />
+      <Maal y={400} retning={1} net={net} />
+      <text x="121" y="408" fill="rgba(255,255,255,0.6)" fontSize="6" fontWeight="600"
+            fontFamily="Segoe UI, sans-serif">{forsvar ? "Deres mål" : "Eget mål"}</text>
     </svg>
   );
 }

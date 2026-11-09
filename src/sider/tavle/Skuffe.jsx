@@ -222,13 +222,19 @@ export default function Skuffe({ systemer, afspilning }) {
           {systemer.length === 0 && (
             <p className="tom-tekst">Du har ingen systemer endnu.<br />Lav dem under fanen Systemer.</p>
           )}
+          {/* Systemer på HEL bane (kontra) kan ikke vises på tavlens halve bane – de står der,
+              men kan ikke vælges (disabled) og får en lille note */}
           {systemer.map(s => (
             <button
               key={s.id}
               className={"skuffe-system" + (system && s.id === system.id ? " aktiv" : "")}
-              onClick={() => vaelg(s.id)}
+              disabled={s.helBane === true}
+              title={s.helBane ? "Systemer på hel bane kan kun afspilles på Systemer-siden" : undefined}
+              style={s.helBane ? { opacity: 0.5, cursor: "not-allowed" } : undefined}
+              onClick={() => { if (!s.helBane) vaelg(s.id); }}
             >
               <b>{s.navn}</b>
+              {s.helBane && <small>🔄 Hel bane – kun på Systemer-siden</small>}
               <small>
                 {erForsvarssystem(s) && "🛡️ Forsvar · "}
                 {harForgrening(s)

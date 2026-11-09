@@ -1,0 +1,93 @@
+/* =========================================================
+   SYSTEMER: HEL BANE (kontra/omstilling) og 🎬 GEM SOM VIDEO
+   (Importeres fra SystemBane.jsx og SystemOversigt.jsx. Resten af Systemer-sidens CSS står i styles.css.)
+   ========================================================= */
+
+/* ---------- 🔄 Hel bane ----------
+   Den hele bane står på højkant og er dobbelt så høj som den halve (230 x 460 i stedet for 230 x 252).
+   Banens bredde regnes ud fra skærmens højde: (100vh - fradrag) * 230 / 460.
+   "fradrag" er den plads, der skal være til topbjælke, afspiller, tekst osv. – samme tal som
+   for den halve bane i styles.css. Vi gemmer tallet i en CSS-variabel (--fradrag), så selve
+   bredden kun skal skrives ét sted. De mest specifikke regler (flest klasser) vinder. */
+.system-venstre.hel-bane { --fradrag: 190px; }
+.system-editor.seer .system-venstre.hel-bane { --fradrag: 270px; }
+.system-venstre.hel-bane.med-tekst { --fradrag: 255px; }
+.system-editor.seer .system-venstre.hel-bane.med-tekst { --fradrag: 335px; }
+.system-venstre.hel-bane.med-varianter { --fradrag: 240px; }
+.system-editor.seer .system-venstre.hel-bane.med-varianter { --fradrag: 320px; }
+.system-venstre.hel-bane.med-tekst.med-varianter { --fradrag: 305px; }
+.system-editor.seer .system-venstre.hel-bane.med-tekst.med-varianter { --fradrag: 385px; }
+/* Præsentation (fuld skærm) – kun i seer-tilstand */
+.system-editor.seer .system-venstre.hel-bane.praesentation { --fradrag: 190px; }
+.system-editor.seer .system-venstre.hel-bane.praesentation.med-tekst { --fradrag: 265px; }
+.system-editor.seer .system-venstre.hel-bane.praesentation.med-varianter { --fradrag: 240px; }
+.system-editor.seer .system-venstre.hel-bane.praesentation.med-tekst.med-varianter { --fradrag: 315px; }
+
+/* !important, fordi styles.css har mange bredde-regler for den halve bane (og de skal ikke ændres) */
+.system-editor .system-venstre.hel-bane > .system-bane.hel {
+  width: min(100%, calc((100vh - var(--fradrag)) * 230 / 460)) !important;
+  aspect-ratio: 230 / 460;
+}
+@media (max-width: 1000px) {
+  .system-editor .system-venstre.hel-bane > .system-bane.hel { width: min(100%, 420px) !important; }
+}
+
+/* Banen er lille i forhold til de 40 m – derfor lidt mindre brikker og bold */
+.system-bane.hel .sbrik { width: 34px; height: 37px; }
+.system-bane.hel .sbrik-navn { font-size: 0.6rem; padding: 0 5px; }
+.system-bane.hel .bold { width: 12px; height: 12px; }
+.system-bane.hel .trin-skilt { font-size: 0.75rem; }
+
+/* Mærket "🔄 Hel bane" på kortene og i titlen */
+.system-maerke.hel-bane { background: #12343b; color: #99f6e4; border-color: #0f766e; }
+
+/* ---------- 🎬 Gem som video ---------- */
+
+/* Bjælken "🎬 Optager… 40 %" med en lille fremskridtslinje og Annuller */
+.video-status {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: min(100%, 640px);
+  box-sizing: border-box;
+  background: var(--panel);
+  border: 1px solid var(--fremhaev);
+  border-radius: 12px;
+  padding: 8px 12px;
+  font-weight: 600;
+}
+.video-status .video-linje {
+  flex: 1;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--baggrund);
+  overflow: hidden;
+}
+.video-status .video-linje > div {
+  height: 100%;
+  background: var(--fremhaev);
+  transition: width 0.2s linear;
+}
+.video-status .knap { pointer-events: auto; opacity: 1; }
+
+/* Mens der optages, kan man ikke trykke på noget andet (kun Annuller) */
+.system-editor.optager .seer-knapper,
+.system-editor.optager .afspiller,
+.system-editor.optager .variant-vaelger,
+.system-editor.optager .system-panel,
+.system-editor.optager .system-bane {
+  pointer-events: none;
+}
+.system-editor.optager .seer-knapper,
+.system-editor.optager .afspiller,
+.system-editor.optager .variant-vaelger,
+.system-editor.optager .system-panel {
+  opacity: 0.5;
+}
+
+/* Rettelse efter test: i seer-tilstand fylder topbjælken mere (mærke + beskrivelse på flere linjer),
+   så afspilleren røg under kanten. Lidt mere luft: */
+.system-editor.seer .system-venstre.hel-bane { --fradrag: 320px; }
+.system-editor.seer .system-venstre.hel-bane.med-tekst { --fradrag: 385px; }
+.system-editor.seer .system-venstre.hel-bane.med-varianter { --fradrag: 370px; }
+.system-editor.seer .system-venstre.hel-bane.med-tekst.med-varianter { --fradrag: 435px; }

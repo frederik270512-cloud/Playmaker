@@ -46,8 +46,18 @@ export function ModstanderFigur({ nr, tekst, maalmand }) {
     forsvarssystem: M1-M6 = os (gul, nummer), M0 = vores målmand (grå, "MV")
                     VF, VB ... = modstanderens angribere (mørk, rollekoden)
   tekst (valgfri) overskriver teksten på VORE angriberes trøjer (fx trøjenummeret på tavlen).
+
+  "VM" = målmanden for holdet MED bolden – bruges kun i systemer på hel bane (kontra), hvor
+  angrebet starter ved målmanden. Nøglen starter IKKE med "M", så han hører til angriberne.
+    angrebssystem:  vores målmand (grå, lange ærmer, "MV")
+    forsvarssystem: modstanderens målmand (mørkerød, "MV")
 */
 export function SystemFigur({ noegle, forsvar = false, tekst }) {
+  if (noegle === "VM") {
+    return forsvar
+      ? <ModstanderFigur maalmand tekst="MV" />
+      : <HjemmeFigur rolle="MV" tekst={tekst ?? "MV"} />;
+  }
   const erM = noegle.startsWith("M");
   const nr = Number(noegle.slice(1));        // "M3" → 3
   if (!forsvar) {

@@ -11,12 +11,17 @@
     SystemEditor.jsx   – seer/rediger, panelet, gem/kassér, tastatur, præsentation
     SystemBane.jsx     – banen med brikker, bold, pile og træk med musen/fingeren
     useAfspilning.js   – afspilningen (▶ Start, tidslinje, requestAnimationFrame)
+    helBane.js         – systemer på hel bane (kontra/omstilling): startopstilling og skift af bane
+    kontraSkabelon.js  – skabelonen "Kontra: hurtigt modløb" (hel bane)
+    videoEksport.js    – "🎬 Gem som video": tegner systemet på et <canvas> og optager det
+    Systemer.css       – CSS til hel bane og video
 */
 import { useCallback, useState } from "react";
 import { useData } from "../DataKontekst.jsx";
 import { nytSystemData } from "../data/standardData.js";
 import SystemOversigt from "./systemer/SystemOversigt.jsx";
 import SystemEditor from "./systemer/SystemEditor.jsx";
+import { nytHelBaneSystemData } from "./systemer/helBane.js";
 
 export default function Systemer() {
   const { data } = useData();
@@ -33,11 +38,16 @@ export default function Systemer() {
     setAabent({ id, nytSystem: null });
   }
 
-  // type = "angreb" eller "forsvar" (man vælger i oversigten, når man trykker "+ Nyt system")
-  function nytSystem(type = "angreb") {
+  /*
+    type = "angreb" eller "forsvar" (man vælger i oversigten, når man trykker "+ Nyt system").
+    helBane = true → et kontraangreb på hel bane med sin egen startopstilling (se helBane.js).
+  */
+  function nytSystem(type = "angreb", helBane = false) {
     // Det nye system lægges IKKE i data.systemer endnu – det sker først, når man trykker Gem
-    const navn = type === "forsvar" ? "Nyt forsvar" : "Nyt system";
-    const s = nytSystemData(`${navn} ${data.systemer.length + 1}`, "6-0", type);
+    const nr = data.systemer.length + 1;
+    const s = helBane
+      ? nytHelBaneSystemData(`Ny kontra ${nr}`, type)
+      : nytSystemData(`${type === "forsvar" ? "Nyt forsvar" : "Nyt system"} ${nr}`, "6-0", type);
     setAabent({ id: s.id, nytSystem: s });
   }
 
