@@ -45,6 +45,20 @@ export default function SystemEditor({ systemId, nytSystem, onLuk }) {
   const [praesentation, setPraesentation] = useState(false);
   const navnRef = useRef(null);
 
+  /*
+    💬 TEKSTHJÆLP: viser trinnets tekst i en bjælke under banen.
+    Den er slået FRA som standard. Valget huskes i browseren (localStorage),
+    så den står som sidst, næste gang man åbner et system.
+  */
+  const [visTekst, setVisTekst] = useState(() => {
+    try { return localStorage.getItem("playmaker-vis-tekst") === "ja"; } catch { return false; }
+  });
+  function skiftVisTekst() {
+    const ny = !visTekst;
+    setVisTekst(ny);
+    try { localStorage.setItem("playmaker-vis-tekst", ny ? "ja" : "nej"); } catch { /* ikke vigtigt */ }
+  }
+
   // Den gemte udgave fra appens data (undefined hvis systemet er nyt eller slettet)
   const gemt = data.systemer.find(s => s.id === systemId);
   const redigerer = kladde !== null;
@@ -161,7 +175,8 @@ export default function SystemEditor({ systemId, nytSystem, onLuk }) {
     const index = trinIndex;
     aendrKladde(k => {
       const trin = [...k.trin];
-      trin.splice(index + 1, 0, structuredClone(k.trin[index]));   // splice indsætter i en liste
+      // Det nye trin får positionerne med, men en tom tekst (den skal man selv skrive)
+      trin.splice(index + 1, 0, { ...structuredClone(k.trin[index]), tekst: "" });   // splice indsætter i en liste
       return { ...k, trin };
     });
     afspil.gaaTilTrin(index + 1);
@@ -342,11 +357,20 @@ export default function SystemEditor({ systemId, nytSystem, onLuk }) {
         : `Trin ${trinIndex + 1}: træk spillerne derhen hvor de løber. Klik på en spiller for at aflevere til ham, ` +
           "eller træk bolden for at kaste den – slip den i målet for at skyde.";
 
+  /*
+    Hvilken tekst skal vises lige nu?
+    - Står vi PÅ et trin: det trins tekst.
+    - Er vi MELLEM to trin: teksten for det trin, spillerne er på vej hen til
+      (den beskriver jo det, der sker lige nu).
+  */
+  const tekstTrinIndex = trinIndex !== null ? trinIndex : Math.min(Math.floor(tid) + 1, antalTrin - 1);
+  const aktuelTekst = system?.trin[tekstTrinIndex]?.tekst || "";
+
   return (
     <div className={"system-editor" + (redigerer ? "" : " seer")}>
 
       {/* VENSTRE: banen + afspilleren */}
-      <section className={"system-venstre" + (praesentation ? " praesentation" : "")}>
+      <section className={"system-venstre" + (praesentation ? " praesentation" : "") + (visTekst ? " med-tekst" : "")}>
         {/* Topbjælke der KUN vises i seer-tilstand (styres af CSS) */}
         <div className="seer-top">
           <div>
@@ -372,6 +396,14 @@ export default function SystemEditor({ systemId, nytSystem, onLuk }) {
           aendrTrin={aendrTrin}
           spillerNavn={spillerNavn}
         />
+
+        {/* 💬 Tekstbjælken under banen – kun når tekst-hjælpen er slået til */}
+        {visTekst && (
+          <div className={"trin-tekst" + (aktuelTekst ? "" : " tom")}>
+            <b>💬 Trin {tekstTrinIndex + 1}:</b>{" "}
+            {aktuelTekst || "Ingen tekst til dette trin."}
+          </div>
+        )}
 
         <div className="afspiller">
           <button className="knap" title="Tilbage til start" onClick={() => afspil.gaaTilTrin(0)}>⏮</button>
@@ -399,6 +431,14 @@ export default function SystemEditor({ systemId, nytSystem, onLuk }) {
             <option value={1.5}>Normal</option>
             <option value={0.8}>Hurtig</option>
           </select>
+          {/* Slå tekst-hjælpen til/fra */}
+          <button
+            className={"knap" + (visTekst ? " aktiv-knap" : "")}
+            title="Vis forklarende tekst til hvert trin"
+            onClick={skiftVisTekst}
+          >
+            💬 Tekst
+          </button>
         </div>
       </section>
 
@@ -467,6 +507,21 @@ export default function SystemEditor({ systemId, nytSystem, onLuk }) {
             ))}
           </div>
           <p className="hjaelp">{trinHjaelp}</p>
+
+          {/* Tekst til det trin, man står på (vises under banen, når 💬 Tekst er slået til) */}
+          {trinIndex !== null && (
+            <label className="felt">💬 Tekst til trin {trinIndex + 1}
+              <textarea
+                rows={2}
+                maxLength={200}
+                disabled={!kanRedigere}
+                placeholder="Fx: C binder 3'eren – kig efter VB i ryggen"
+                value={system.trin[trinIndex]?.tekst || ""}
+                onChange={(e) => { const tekst = e.target.value; aendrTrin(trinIndex, t => ({ ...t, tekst })); }}
+              />
+            </label>
+          )}
+
           <div className="knap-raekke">
             <button className="knap knap-primaer" disabled={!kanRedigere} onClick={optagTrin}>⏺ Optag næste trin</button>
             <button

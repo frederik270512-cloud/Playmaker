@@ -1409,3 +1409,35 @@
 #root { display: contents; }
 /* Gem-status (fx "● Ikke gemt") må ikke knække over på to linjer */
 .gem-status { white-space: nowrap; }
+
+/* ---------- 💬 Tekst pr. trin (Systemer) ---------- */
+/* Bjælken under banen har samme bredde som banen og afspilleren */
+.trin-tekst {
+  width: min(100%, calc((100vh - 190px) * 230 / 252));
+  background: var(--panel);
+  border-left: 4px solid var(--fremhaev);
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 0.95rem;
+  line-height: 1.45;
+}
+.trin-tekst.tom { color: var(--tekst-svag); border-left-color: var(--kant); }
+.system-editor.seer .trin-tekst { width: min(100%, calc((100vh - 270px) * 230 / 252)); }
+.system-venstre.praesentation .trin-tekst { width: min(100%, calc((100vh - 190px) * 230 / 252)); font-size: 1.1rem; }
+@media (max-width: 1000px) {
+  .trin-tekst { width: min(100%, 640px) !important; }
+}/* Når tekstbjælken vises, gøres banen lidt mindre, så afspilleren stadig kan ses */
+.system-editor .system-venstre.med-tekst .system-bane,
+.system-editor .system-venstre.med-tekst .afspiller,
+.system-editor .system-venstre.med-tekst .trin-tekst { width: min(100%, calc((100vh - 255px) * 230 / 252)); }
+.system-editor.seer .system-venstre.med-tekst .system-bane,
+.system-editor.seer .system-venstre.med-tekst .afspiller,
+.system-editor.seer .system-venstre.med-tekst .trin-tekst { width: min(100%, calc((100vh - 335px) * 230 / 252)); }
+.system-editor .system-venstre.praesentation.med-tekst .system-bane,
+.system-editor .system-venstre.praesentation.med-tekst .afspiller,
+.system-editor .system-venstre.praesentation.med-tekst .trin-tekst { width: min(100%, calc((100vh - 265px) * 230 / 252)); }
+@media (max-width: 1000px) {
+  .system-editor .system-venstre.med-tekst .system-bane,
+  .system-editor .system-venstre.med-tekst .afspiller,
+  .system-editor .system-venstre.med-tekst .trin-tekst { width: min(100%, 640px) !important; }
+}

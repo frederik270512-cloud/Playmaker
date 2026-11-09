@@ -65,7 +65,7 @@ export function tomOpstilling() {
 
 /*
   Et nyt system med ét trin. Et trin er et "billede" af hvor alle står, og hvem der har bolden:
-    { pos: { VF: {x, y}, ..., M0: {x, y}, M1: ... }, bold: "C" }
+    { pos: { VF: {x, y}, ..., M0: {x, y}, M1: ... }, bold: "C", tekst: "forklaring" }
   bold er enten en spiller ("C") eller et punkt på banen ({x, y}) – i målet = skud.
 */
 export function nytSystemData(navn, forsvar = "6-0") {
@@ -82,16 +82,20 @@ export function eksempelSystem() {
   s.id = 1;
   s.beskrivelse = "Center trækker til venstre med bolden og binder forsvarer 3. " +
                   "Stregspilleren sætter skærm, og venstre back krydser bag om og får bolden i midten.";
+  s.trin[0].tekst = "Startopstilling. C har bolden midt på banen.";
   const trin2 = structuredClone(s.trin[0]);
+  trin2.tekst = "C trækker til venstre og binder 3'eren. ST sætter skærm.";
   trin2.pos.C = { x: 68, y: 112 };
   trin2.pos.ST = { x: 80, y: 72 };
   trin2.pos.M3 = { x: 74, y: 84 };
   const trin3 = structuredClone(trin2);
+  trin3.tekst = "VB krydser bag om C og får bolden i midten – kig efter hullet ved 4'eren.";
   trin3.pos.VB = { x: 100, y: 100 };
   trin3.pos.C = { x: 58, y: 106 };
   trin3.pos.M4 = { x: 110, y: 74 };
   trin3.bold = "VB";
   const trin4 = structuredClone(trin3);
+  trin4.tekst = "VB afslutter med et hoppeskud i målets højre side.";
   trin4.pos.VB = { x: 104, y: 94 };
   trin4.bold = { x: 109, y: -5 };     // et punkt inde i målet = skud
   s.trin.push(trin2, trin3, trin4);
