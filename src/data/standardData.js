@@ -184,6 +184,9 @@ export function standardData() {
     opstillinger: [],
     tegning: [],
     kampdag: nyKampdag(),
+    kampResultater: [],    // holdets resultater (Kampdag → Statistik)
+    personligeMaal: [],    // personlige mål pr. spiller (Statistik/Spillere)
+    kampplaner: [],        // kampplaner (Kampplan-siden)
   };
 }
 

@@ -134,6 +134,17 @@ export function normaliser(ind, grundlag) {
   }
   if (Array.isArray(ind.opstillinger)) d.opstillinger = ind.opstillinger;
   if (Array.isArray(ind.tegning)) d.tegning = ind.tegning;
+
+  // Holdets kampresultater (skrives af Kampdag, når en kamp afsluttes): { id, dato, modstander, hjemme, ude }
+  if (Array.isArray(ind.kampResultater)) {
+    d.kampResultater = ind.kampResultater
+      .filter(k => k && typeof k === "object")
+      .map(k => ({ ...k, modstander: String(k.modstander ?? ""), hjemme: Number(k.hjemme) || 0, ude: Number(k.ude) || 0 }));
+  }
+  // Personlige mål pr. spiller: { id, spillerId, type, maal, tekst? }
+  if (Array.isArray(ind.personligeMaal)) d.personligeMaal = ind.personligeMaal.filter(m => m && typeof m === "object");
+  // Kampplaner: { id, titel, dato, modstanderId, opstilling, systemIds, noter }
+  if (Array.isArray(ind.kampplaner)) d.kampplaner = ind.kampplaner.filter(p => p && typeof p === "object");
   if (ind.kampdag && Array.isArray(ind.kampdag.haendelser)) d.kampdag = { ...nyKampdag(), ...ind.kampdag };
   return d;
 }
