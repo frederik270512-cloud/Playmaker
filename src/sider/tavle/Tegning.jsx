@@ -89,7 +89,7 @@ export default function Tegning({ aktiv, vaerktoej, setVaerktoej }) {
     }
     e.preventDefault();
     // "Pointer capture": alle bevægelser sendes til laget, også hvis man kommer uden for det
-    e.currentTarget.setPointerCapture(e.pointerId);
+    try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* ikke afgørende – virker også uden */ }
     const p = skaermTilBane(e.currentTarget, e.clientX, e.clientY);
     saetStreg({ type: vaerktoej, farve, punkter: [p, p] });
   }

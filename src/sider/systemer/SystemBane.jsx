@@ -70,7 +70,7 @@ export default function SystemBane({ system, tid, trinIndex, kanRedigere, aendrT
     if (!kanRedigere) return;
     e.preventDefault();
     // setPointerCapture: brikken bliver ved med at få events, selv hvis musen smutter væk fra den
-    e.currentTarget.setPointerCapture(e.pointerId);
+    try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* ikke afgørende – virker også uden */ }
     const nu = system.trin[trinIndex].pos[noegle];
     const mus = skaermTilBane(baneRef.current, e.clientX, e.clientY);
     traek.current = {
@@ -118,7 +118,7 @@ export default function SystemBane({ system, tid, trinIndex, kanRedigere, aendrT
     if (!kanRedigere) return;
     e.preventDefault();
     e.stopPropagation();
-    e.currentTarget.setPointerCapture(e.pointerId);
+    try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* ikke afgørende – virker også uden */ }
     traek.current = { type: "bold", index: trinIndex, erFlyttet: false };
   }
 
