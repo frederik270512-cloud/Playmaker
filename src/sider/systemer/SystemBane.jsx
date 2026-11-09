@@ -17,9 +17,10 @@
 */
 import { useRef, useState } from "react";
 import BaneSVG from "../../komponenter/BaneSVG.jsx";
-import { HjemmeFigur, ModstanderFigur } from "../../komponenter/Figur.jsx";
+import { SystemFigur } from "../../komponenter/Figur.jsx";
 import { PileLag, TrinPile } from "../../komponenter/Pile.jsx";
-import { ANGRIBERE, ROLLER, MAAL } from "../../data/konstanter.js";
+import { MAAL } from "../../data/konstanter.js";
+import { angribereIPos, erForsvarssystem, erVores, brikNavn, rolleInfo } from "../../systemRoller.js";
 import { tilstandVed, boldPosition, erSkud } from "../../animation.js";
 import { tilProcent, skaermTilBane, begraens } from "../../hjaelpere.js";
 
@@ -35,7 +36,8 @@ function landBold(bold, pos) {
 
   let naermest = null;
   let kortesteAfstand = 14;
-  for (const noegle of ANGRIBERE) {
+  // Kun angriberne kan gribe bolden (også i et forsvarssystem – der er det modstanderen)
+  for (const noegle of angribereIPos(pos)) {
     const p = pos[noegle];
     if (!p) continue;
     const afstand = Math.hypot(p.x - bold.x, p.y - bold.y);
@@ -70,6 +72,8 @@ export default function SystemBane({
 
   const t = tilstandVed(system, tid);
   const bp = boldPosition(t);
+  // Forsvarssystem? Så er VI forsvaret (se systemRoller.js) – trøjer og pile bytter rolle
+  const forsvar = erForsvarssystem(system);
 
   /* ---------- Træk brikker (Pointer Events: virker med mus, pen og finger) ----------
      pointerdown → man trykker, pointermove → musen flyttes, pointerup → man slipper.
@@ -153,10 +157,11 @@ export default function SystemBane({
      Mellem to trin viser vi svagt det, der er ved at ske. */
   const pile = trinIndex !== null
     ? <PileLag synlighed={1}>
-        <TrinPile fraTrin={trinIndex > 0 ? system.trin[trinIndex - 1] : null} tilTrin={system.trin[trinIndex]} />
+        <TrinPile fraTrin={trinIndex > 0 ? system.trin[trinIndex - 1] : null} tilTrin={system.trin[trinIndex]}
+                  forsvar={forsvar} />
       </PileLag>
     : <PileLag synlighed={0.45}>
-        <TrinPile fraTrin={system.trin[t.fraIndex]} tilTrin={system.trin[t.fraIndex + 1]} />
+        <TrinPile fraTrin={system.trin[t.fraIndex]} tilTrin={system.trin[t.fraIndex + 1]} forsvar={forsvar} />
       </PileLag>;
 
   const skilt = trinIndex !== null
@@ -182,30 +187,37 @@ export default function SystemBane({
 
       <div className="trin-skilt">{skilt}</div>
 
-      {/* Brikkerne. Object.keys(trin 1) = alle pladser i systemet (VF, VB, ..., M0..M6) */}
+      {/* Brikkerne. Object.keys(trin 1) = alle pladser i systemet (VF, VB, ..., evt. ST2, M0..M6) */}
       {Object.keys(system.trin[0].pos).map((noegle) => {
         const p = t.pos[noegle];
         if (!p) return null;
-        const modst = noegle.startsWith("M");
+        const erM = noegle.startsWith("M");
+        // "modst" (lidt mindre brik) = modstanderen – det er M-nøglerne i angreb, angriberne i forsvar
+        const modst = !erVores(system, noegle);
         const klasse = "sbrik" + (modst ? " modst" : "") + (trukket === noegle ? " trukket" : "");
-        const navn = modst ? "" : spillerNavn(noegle);
-        const nr = Number(noegle.slice(1));        // "M3" → 3
+        // Navne fra taktiktavlen vises kun på vores angribere (ikke i forsvarssystemer)
+        const navn = !forsvar && !erM ? spillerNavn(noegle) : "";
+        let titel;
+        if (erM) {
+          const nr = Number(noegle.slice(1));      // "M3" → 3
+          titel = forsvar
+            ? (nr === 0 ? "Vores målmand" : `Vores forsvarer ${nr}`)
+            : (nr === 0 ? "Modstanderens målmand" : `Forsvarsspiller ${nr}`);
+        } else {
+          titel = (forsvar ? `Modstanderens ${brikNavn(noegle)}` : rolleInfo(noegle).navn) + " – klik for at give bolden";
+        }
         return (
           <div
             key={noegle}
             className={klasse}
             style={tilProcent(p.x, p.y)}
-            title={modst
-              ? (nr === 0 ? "Modstanderens målmand" : `Forsvarsspiller ${nr}`)
-              : `${ROLLER[noegle]?.navn ?? noegle} – klik for at give bolden`}
+            title={titel}
             onPointerDown={(e) => brikNed(e, noegle)}
             onPointerMove={brikFlyt}
             onPointerUp={brikOp}
             onPointerCancel={brikOp}
           >
-            {modst
-              ? <ModstanderFigur nr={nr} />
-              : <HjemmeFigur rolle={noegle} tekst={noegle} />}
+            <SystemFigur noegle={noegle} forsvar={forsvar} />
             {navn && <span className="sbrik-navn">{navn}</span>}
           </div>
         );

@@ -4,20 +4,27 @@
   spilleres løbevej gennem alle trin, og boldens vej som en stiplet gul streg.
   Har systemet varianter, tegnes de fælles trin + den FØRSTE variant.
 */
-import { ANGRIBERE, ROLLER, HJEMME, MODSTANDER_FARVE, MODSTANDER_KANT } from "../../data/konstanter.js";
+import { HJEMME, MODSTANDER_FARVE, MODSTANDER_KANT } from "../../data/konstanter.js";
 import { boldPunkt } from "../../animation.js";
 import { effektivtSystem } from "../../systemVarianter.js";
+import { voresNoegler, erVores, erForsvarssystem, rolleInfo } from "../../systemRoller.js";
 
 export default function MiniBane({ system: helt }) {
   // null som variant = den første variant (uden varianter får vi bare systemet selv)
   const system = effektivtSystem(helt, null);
+  const forsvar = erForsvarssystem(system);
+  const start = system.trin[0];
+
   // Løbeveje: punkterne "x,y" for spilleren i hvert trin. En "polyline" er en streg gennem flere punkter.
-  const loebeveje = ANGRIBERE.map((noegle) => {
+  // Kun VORE spillere får en løbevej: angriberne i et angrebssystem, forsvaret i et forsvarssystem.
+  const loebeveje = voresNoegler(system, start).map((noegle) => {
     const punkter = system.trin.filter(t => t.pos[noegle]).map(t => `${t.pos[noegle].x},${t.pos[noegle].y}`);
     // new Set(...) fjerner dubletter: er der kun ét forskelligt punkt, har spilleren ikke flyttet sig
     if (new Set(punkter).size < 2) return null;
+    // Angreb: rollens farve. Forsvar: vores gule trøjefarve.
+    const farve = forsvar ? HJEMME.mark.farve : rolleInfo(noegle).farve;
     return (
-      <polyline key={noegle} points={punkter.join(" ")} fill="none" stroke={ROLLER[noegle].farve}
+      <polyline key={noegle} points={punkter.join(" ")} fill="none" stroke={farve}
                 strokeWidth="3" strokeLinejoin="round" strokeLinecap="round" />
     );
   });
@@ -27,8 +34,6 @@ export default function MiniBane({ system: helt }) {
     const p = boldPunkt(t.bold, t.pos);
     return `${p.x},${p.y}`;
   });
-
-  const start = system.trin[0];
 
   return (
     <svg viewBox="-15 -15 230 200" aria-hidden="true">
@@ -48,7 +53,7 @@ export default function MiniBane({ system: helt }) {
 
       {/* Alle i trin 1 som prikker: vores gule, modstanderne mørke */}
       {Object.entries(start.pos).map(([noegle, p]) => {
-        const modst = noegle.startsWith("M");
+        const modst = !erVores(system, noegle);
         return (
           <circle key={noegle} cx={p.x} cy={p.y} r={modst ? 5 : 7}
                   fill={modst ? MODSTANDER_FARVE : HJEMME.mark.farve}

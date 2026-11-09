@@ -24,6 +24,19 @@ export const ROLLE_RAEKKEFOELGE = Object.keys(ROLLER);
 export const ANGRIBERE = ["VF", "VB", "C", "HB", "HF", "ST"];
 
 /*
+  EKSTRA ROLLER – kun til systemer, ikke til spillerne på holdet.
+  "ST2" er en ekstra stregspiller, når vi spiller 7 mod 6 (tomt mål).
+  Han låner stregspillerens farve. Han står IKKE i ROLLER, for så ville man kunne
+  vælge "ST2" som position for en spiller – og det giver ikke mening.
+*/
+export const EKSTRA_ROLLER = {
+  ST2: { ...ROLLER.ST, navn: "Stregspiller 2" },
+};
+
+// Alle angriber-pladser, der kan være i et system (den 7. bruges kun, hvis den er med)
+export const ALLE_ANGRIBERE = [...ANGRIBERE, "ST2"];
+
+/*
   De 7 faste pladser på taktiktavlen. x og y er i banens koordinater:
   banen går fra (0,0) til (200,200), 1 enhed = 10 cm. Målet vi angriber står øverst.
 */

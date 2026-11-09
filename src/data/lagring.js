@@ -64,6 +64,20 @@ export function sikrForgrening(s) {
 }
 
 /*
+  Sørger for at et helt system er i orden:
+    - type er "angreb" eller "forsvar" (mangler den – fx i gamle systemer – er det "angreb")
+    - skabelon er true eller false (true = kom fra skabelonerne, se skabeloner.js)
+    - forgreningen tjekkes af sikrForgrening
+*/
+export function sikrSystem(s) {
+  return {
+    ...sikrForgrening(s),
+    type: s.type === "forsvar" ? "forsvar" : "angreb",
+    skabelon: s.skabelon === true,
+  };
+}
+
+/*
   Lægger "ind" (data fra hukommelsen eller en fil) oven på "grundlag" og giver
   et nyt, rent data-objekt tilbage. Felter der mangler i "ind", tages fra grundlaget.
   Ukendte roller, forkerte tal o.l. bliver sorteret fra, så appen aldrig går ned.
@@ -72,6 +86,7 @@ export function normaliser(ind, grundlag) {
   const d = structuredClone(grundlag);
   if (!ind || typeof ind !== "object") {
     d.spillere = d.spillere.map(sikrSpiller);   // også standardspillerne skal have alle felter
+    d.systemer = d.systemer.map(sikrSystem);
     return d;
   }
 
@@ -102,7 +117,9 @@ export function normaliser(ind, grundlag) {
   if (Array.isArray(ind.systemer)) {
     d.systemer = ind.systemer
       .filter(s => s && Array.isArray(s.trin) && s.trin.length > 0)
-      .map(sikrForgrening);
+      .map(sikrSystem);
+  } else {
+    d.systemer = d.systemer.map(sikrSystem);     // også standardsystemerne skal have type og skabelon
   }
   if (Array.isArray(ind.modstandere)) {
     d.modstandere = ind.modstandere

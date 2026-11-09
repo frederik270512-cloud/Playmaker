@@ -2,7 +2,8 @@
   PILE – for løb (hel streg), afleveringer (stiplet hvid) og skud (stiplet gul).
   Bruges på Systemer-siden, ved afspilning på taktiktavlen og til tegning på tavlen.
 */
-import { ANGRIBERE, ROLLER } from "../data/konstanter.js";
+import { HJEMME } from "../data/konstanter.js";
+import { angribereI, forsvarereI, rolleInfo } from "../systemRoller.js";
 import { boldPunkt, erSkud, sammeBold } from "../animation.js";
 
 /*
@@ -40,16 +41,24 @@ export function Pil({ a, b, farve, stiplet = false, slutAfstand = 10 }) {
 /*
   Alle pile fra ét trin til det næste: løb for vores spillere, der har flyttet sig,
   og en aflevering/skud hvis bolden har skiftet sted.
+    forsvar = true → det er et forsvarssystem: så er det VORE forsvarsspillere, der får
+                     løbepile (gule – målmanden grå), og ikke angriberne.
+  Angriberne findes i selve trinet (angribereI), så en 7. angriber (ST2) også får pil.
 */
-export function TrinPile({ fraTrin, tilTrin }) {
+export function TrinPile({ fraTrin, tilTrin, forsvar = false }) {
   if (!fraTrin || !tilTrin) return null;
   const skud = erSkud(tilTrin.bold);
+  const loebere = forsvar ? forsvarereI(fraTrin) : angribereI(fraTrin);
+  function loebFarve(noegle) {
+    if (!forsvar) return rolleInfo(noegle).farve;
+    return noegle === "M0" ? HJEMME.maalmand.farve : HJEMME.mark.farve;
+  }
   return (
     <>
-      {ANGRIBERE.map((noegle) => {
+      {loebere.map((noegle) => {
         const a = fraTrin.pos[noegle];
         const b = tilTrin.pos[noegle];
-        return a && b ? <Pil key={noegle} a={a} b={b} farve={ROLLER[noegle].farve} /> : null;
+        return a && b ? <Pil key={noegle} a={a} b={b} farve={loebFarve(noegle)} /> : null;
       })}
       {!sammeBold(fraTrin.bold, tilTrin.bold) && (
         <Pil

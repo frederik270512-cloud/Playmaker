@@ -36,6 +36,7 @@ import {
 import useAfspilning from "./useAfspilning.js";
 import SystemBane from "./SystemBane.jsx";
 import Quiz from "./Quiz.jsx";
+import { erForsvarssystem } from "../../systemRoller.js";
 
 // Det samme spørgsmål bruges ved "← Alle systemer", "✓ Færdig" og skift af fane
 const FORLAD_KNAPPER = [
@@ -268,7 +269,8 @@ export default function SystemEditor({ systemId, nytSystem, onLuk }) {
   async function skiftForsvar(nytForsvar) {
     if (antalTrinIalt(system) > 1) {
       const svar = await spoerg("Skift forsvar?",
-        "Modstandernes bevægelser i alle trin bliver nulstillet til den nye formation.", [
+        (erForsvarssystem(system) ? "Vores forsvarsspilleres" : "Modstandernes") +
+        " bevægelser i alle trin bliver nulstillet til den nye formation.", [
           { tekst: "Annuller", svar: false },
           { tekst: "Skift forsvar", svar: true, stil: "knap-primaer" },
         ]);
@@ -294,6 +296,14 @@ export default function SystemEditor({ systemId, nytSystem, onLuk }) {
       }
       return nyt;
     });
+  }
+
+  /*
+    Skift systemets type (angreb ↔ forsvar). Positionerne bliver, hvor de er –
+    det er kun trøjerne og pilene, der bytter rolle (se systemRoller.js).
+  */
+  function skiftType(nyType) {
+    aendrKladde(k => ({ ...k, type: nyType === "forsvar" ? "forsvar" : "angreb" }));
   }
 
   /* ---------- Varianter (forgrening) ---------- */
@@ -533,6 +543,8 @@ export default function SystemEditor({ systemId, nytSystem, onLuk }) {
 
   // Hvor mange trin er der i den del, man står i? (Under 2 → man må ikke slette trinet)
   const antalIAktuelDel = antalIDel(trinIndex);
+  // Forsvarssystem? (vi er forsvaret – se systemRoller.js)
+  const forsvarssystem = erForsvarssystem(system);
   const varianter = forgrenet ? system.forgrening.varianter : [];
 
   return (
@@ -547,7 +559,10 @@ export default function SystemEditor({ systemId, nytSystem, onLuk }) {
         {/* Topbjælke der KUN vises i seer-tilstand (styres af CSS) */}
         <div className="seer-top">
           <div>
-            <h2>{system.navn}</h2>
+            <h2>
+              {system.navn}
+              {forsvarssystem && <span className="system-maerke forsvar">🛡️ Forsvar</span>}
+            </h2>
             <p className="opsummering">{system.beskrivelse}</p>
           </div>
           <div className="seer-knapper">
@@ -696,7 +711,14 @@ export default function SystemEditor({ systemId, nytSystem, onLuk }) {
               onChange={(e) => { const beskrivelse = e.target.value; aendrKladde(k => ({ ...k, beskrivelse })); }}
             />
           </label>
-          <label className="felt">Modstanderens forsvar
+          <label className="felt">Type
+            <select value={forsvarssystem ? "forsvar" : "angreb"} onChange={(e) => skiftType(e.target.value)}>
+              <option value="angreb">⚔️ Angreb – vi har bolden</option>
+              <option value="forsvar">🛡️ Forsvar – modstanderen har bolden</option>
+            </select>
+          </label>
+          {/* I et forsvarssystem er formationen VORES forsvar (de gule trøjer) */}
+          <label className="felt">{forsvarssystem ? "Vores forsvar" : "Modstanderens forsvar"}
             <select value={system.forsvar} onChange={(e) => skiftForsvar(e.target.value)}>
               <option value="">Intet</option>
               <option value="6-0">6-0</option>
@@ -853,7 +875,7 @@ export default function SystemEditor({ systemId, nytSystem, onLuk }) {
 
           <h3>Pile</h3>
           <div className="hjaelp">
-            <div>━━➤ Løb (i spillerens farve)</div>
+            <div>{forsvarssystem ? "━━➤ Løb for vores forsvarsspillere (gul)" : "━━➤ Løb (i spillerens farve)"}</div>
             <div>╌╌➤ Aflevering / kast</div>
             <div><span style={{ color: "#fde047" }}>╌╌➤</span> Skud på mål</div>
           </div>

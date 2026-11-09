@@ -1588,3 +1588,27 @@
 .quiz-bjaelke.quiz-forkert { border-left-color: var(--fare); }
 .quiz-bjaelke.quiz-forkert .quiz-resultat { color: #fca5a5; }
 .quiz-knapper { display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap; }
+
+/* =========================================================
+   SKABELONER OG FORSVARSSYSTEMER
+   ========================================================= */
+
+/* Knapperne øverst i oversigten ("📚 Tilføj skabeloner" og "+ Nyt system") */
+.oversigt-knapper { flex-wrap: wrap; justify-content: flex-end; }
+
+/* Små mærker på kortene og i titlen: "🛡️ Forsvar" og "📚 Skabelon" */
+.system-maerker { display: flex; flex-wrap: wrap; gap: 6px; margin: 2px 0 6px; }
+.system-maerke {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  background: #2c3e5c;
+  color: var(--tekst-svag);
+  border: 1px solid var(--kant);
+  white-space: nowrap;
+}
+.system-maerke.forsvar { background: #3b2f12; color: #fde68a; border-color: #a16207; }
+/* I titlen på et åbent system står mærket lidt fra navnet */
+h2 .system-maerke { margin-left: 10px; vertical-align: middle; }

@@ -1,5 +1,5 @@
 /*
-  SIDE 3: SYSTEMER – angrebssystemer som animation.
+  SIDE 3: SYSTEMER – angrebs- og forsvarssystemer som animation.
 
   Siden har to "visninger":
     1) Oversigten med alle gemte systemer som kort (systemer/SystemOversigt.jsx)
@@ -33,9 +33,11 @@ export default function Systemer() {
     setAabent({ id, nytSystem: null });
   }
 
-  function nytSystem() {
+  // type = "angreb" eller "forsvar" (man vælger i oversigten, når man trykker "+ Nyt system")
+  function nytSystem(type = "angreb") {
     // Det nye system lægges IKKE i data.systemer endnu – det sker først, når man trykker Gem
-    const s = nytSystemData(`Nyt system ${data.systemer.length + 1}`);
+    const navn = type === "forsvar" ? "Nyt forsvar" : "Nyt system";
+    const s = nytSystemData(`${navn} ${data.systemer.length + 1}`, "6-0", type);
     setAabent({ id: s.id, nytSystem: s });
   }
 

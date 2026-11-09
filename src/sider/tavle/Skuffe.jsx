@@ -19,8 +19,9 @@ import {
   VARIANT_BOGSTAVER, harForgrening, findVariant, effektivtSystem, trinNavn as variantTrinNavn,
 } from "../../systemVarianter.js";
 import { tilProcent } from "../../hjaelpere.js";
-import { HjemmeFigur, ModstanderFigur } from "../../komponenter/Figur.jsx";
+import { HjemmeFigur, SystemFigur } from "../../komponenter/Figur.jsx";
 import { TrinPile, PileLag } from "../../komponenter/Pile.jsx";
+import { erForsvarssystem, erVores } from "../../systemRoller.js";
 
 export function useTavleAfspilning(systemer) {
   const [systemId, setSystemId] = useState(null);
@@ -135,12 +136,18 @@ const almindeligtTrinNavn = (index) => String(index + 1);
 /*
   Brikkerne til afspilningen: vores spillere fra tavlen + systemets modstandere.
   Står der ingen spiller på en plads, vises pladsens kode (fx "VB") på trøjen.
+  En 7. angriber (ST2, ved 7 mod 6) har ingen plads på tavlen – han vises bare som "ST2".
+
+  Et FORSVARSSYSTEM vises med byttede roller (se systemRoller.js): vores forsvarsspillere i gule
+  trøjer med numrene 1-6 (og vores målmand "MV"), modstanderens angribere i mørke trøjer.
+  Her sætter vi IKKE navne fra opstillingen på – kun numre.
 */
 export function AfspilLag({ system, tid, opstilling, spillere, pladsPositioner, trinNavn = almindeligtTrinNavn }) {
   const findSpiller = id => spillere.find(s => s.id === id);
   const t = tilstandVed(system, tid);
   const paaTrin = Number.isInteger(tid);
   const bold = boldPosition(t);
+  const forsvar = erForsvarssystem(system);
 
   // Pilene: står vi præcis på et trin, vises pilene der førte hertil – ellers dem vi er på vej ad (svagere)
   const pile = paaTrin
@@ -150,12 +157,13 @@ export function AfspilLag({ system, tid, opstilling, spillere, pladsPositioner, 
   const skilt = `${system.navn} · ` +
     (paaTrin ? `Trin ${trinNavn(tid)} af ${system.trin.length}` : `Trin ${trinNavn(t.fraIndex)} → ${trinNavn(t.fraIndex + 1)}`);
 
-  const mv = findSpiller(opstilling.MV);
+  // Vores målmand fra tavlen – kun i angreb (i et forsvarssystem er vores målmand M0 i selve systemet)
+  const mv = forsvar ? null : findSpiller(opstilling.MV);
 
   return (
     <div className="afspil-lag">
       <PileLag synlighed={pile.synlighed}>
-        <TrinPile fraTrin={pile.fra} tilTrin={pile.til} />
+        <TrinPile fraTrin={pile.fra} tilTrin={pile.til} forsvar={forsvar} />
       </PileLag>
       <div className="bold vis-bold" style={tilProcent(bold.x, bold.y)} />
       <div className="trin-skilt">{skilt}</div>
@@ -164,24 +172,20 @@ export function AfspilLag({ system, tid, opstilling, spillere, pladsPositioner, 
         const pos = t.pos[noegle];
         if (!pos) return null;
         const stil = tilProcent(pos.x, pos.y);
-        // Nøgler der starter med "M" er modstandere (M0 = målmand, M1-M6 = forsvarsspillere)
-        if (noegle.startsWith("M")) {
-          return (
-            <div key={noegle} className="sbrik modst" style={stil}>
-              <ModstanderFigur nr={Number(noegle.slice(1))} />
-            </div>
-          );
-        }
-        const spiller = findSpiller(opstilling[noegle]);
+        // "modst" (lidt mindre brik) = modstanderen: M-nøglerne i angreb, angriberne i forsvar
+        const klasse = "sbrik" + (erVores(system, noegle) ? "" : " modst");
+        // Spillere fra opstillingen kun på vores angribere i et angrebssystem.
+        // ST2 har ingen plads i opstillingen → opstilling.ST2 findes ikke → ingen spiller.
+        const spiller = !forsvar && !noegle.startsWith("M") ? findSpiller(opstilling[noegle]) : null;
         return (
-          <div key={noegle} className="sbrik" style={stil}>
-            <HjemmeFigur rolle={noegle} tekst={spiller ? spiller.nummer : noegle} />
+          <div key={noegle} className={klasse} style={stil}>
+            <SystemFigur noegle={noegle} forsvar={forsvar} tekst={spiller ? spiller.nummer : undefined} />
             {spiller && <span className="sbrik-navn">{spiller.navn}</span>}
           </div>
         );
       })}
 
-      {/* Vores målmand står stille der, hvor han står på tavlen (han er ikke med i systemerne) */}
+      {/* Vores målmand står stille der, hvor han står på tavlen (han er ikke med i angrebssystemerne) */}
       {mv && (
         <div className="sbrik" style={tilProcent(pladsPositioner.MV.x, pladsPositioner.MV.y)}>
           <HjemmeFigur rolle="MV" tekst={mv.nummer} />
@@ -212,7 +216,7 @@ export default function Skuffe({ systemer, afspilning }) {
           <button className="slet-x" title="Luk" onClick={() => setAaben(false)}>×</button>
         </div>
         <p className="hjaelp">Systemet spilles med de spillere, du har sat på banen.
-          Tomme pladser vises med positionen på trøjen.</p>
+          Tomme pladser vises med positionen på trøjen. Forsvarssystemer (🛡️) vises med numre.</p>
 
         <div>
           {systemer.length === 0 && (
@@ -226,6 +230,7 @@ export default function Skuffe({ systemer, afspilning }) {
             >
               <b>{s.navn}</b>
               <small>
+                {erForsvarssystem(s) && "🛡️ Forsvar · "}
                 {harForgrening(s)
                   ? `${effektivtSystem(s, null).trin.length} trin · ${s.forgrening.varianter.length} varianter`
                   : `${s.trin.length} trin`}

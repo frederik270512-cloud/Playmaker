@@ -22,9 +22,9 @@
 */
 import { useEffect, useMemo, useRef, useState } from "react";
 import BaneSVG from "../../komponenter/BaneSVG.jsx";
-import { HjemmeFigur, ModstanderFigur } from "../../komponenter/Figur.jsx";
+import { SystemFigur } from "../../komponenter/Figur.jsx";
 import { Pil, PileLag } from "../../komponenter/Pile.jsx";
-import { ANGRIBERE, ROLLER } from "../../data/konstanter.js";
+import { voresNoegler, erVores, erForsvarssystem, brikNavn, rolleInfo } from "../../systemRoller.js";
 import { tilstandVed, boldPosition, boldPunkt } from "../../animation.js";
 import { tilProcent, skaermTilBane, begraens, decimal } from "../../hjaelpere.js";
 
@@ -36,6 +36,8 @@ const ANIMATION_SEK = 1.6;    // så lang tid tager det at afspille det rigtige 
 /*
   Byg listen af spørgsmål. For hvert trin k (fra trin nr. 1, dvs. det ANDET trin)
   finder vi den af vores spillere, der flytter sig MEST fra trin k-1 til trin k.
+  "Vores spillere" er angriberne i et angrebssystem og forsvarsspillerne i et
+  forsvarssystem (se voresNoegler i systemRoller.js).
   Flytter han sig under 1,5 m, er der ikke noget at gætte – så springer vi trinet over.
   Funktionen er "ren": den læser kun systemet og giver en ny liste tilbage.
 */
@@ -46,7 +48,7 @@ export function bygSpoergsmaal(system) {
     const til = system.trin[k].pos;
     let bedst = null;
     let laengst = 0;
-    for (const noegle of ANGRIBERE) {
+    for (const noegle of voresNoegler(system, system.trin[k - 1])) {
       if (!fra[noegle] || !til[noegle]) continue;
       const afstand = Math.hypot(til[noegle].x - fra[noegle].x, til[noegle].y - fra[noegle].y);
       if (afstand > laengst) {
@@ -192,8 +194,13 @@ export default function Quiz({ system, spillerNavn, trinNavn, onAfslut }) {
     resultat = { rigtig, afstand, rigtigt: afstand <= RIGTIGT_GRAENSE };
   }
 
-  // "VB (Mads)" – eller bare "VB", hvis ingen spiller står på pladsen
+  // Forsvarssystem? Så spørger vi om VORE forsvarsspillere (se systemRoller.js)
+  const forsvar = erForsvarssystem(system);
+
+  // "VB (Mads)" – eller bare "VB", hvis ingen spiller står på pladsen.
+  // I et forsvarssystem: "forsvarer 3" / "målmanden" (der bruges ingen navne fra tavlen).
   function spillerTekst(noegle) {
+    if (forsvar) return brikNavn(noegle);
     const navn = spillerNavn(noegle);
     return navn ? `${noegle} (${navn})` : noegle;
   }
@@ -220,19 +227,20 @@ export default function Quiz({ system, spillerNavn, trinNavn, onAfslut }) {
         {/* En halvgennemsigtig "skygge" der viser, hvor man gættede */}
         {resultat && (
           <div className="sbrik quiz-gaet-maerke" style={tilProcent(gaet.x, gaet.y)} aria-hidden="true">
-            <HjemmeFigur rolle={spm.noegle} tekst={spm.noegle} />
+            <SystemFigur noegle={spm.noegle} forsvar={forsvar} />
           </div>
         )}
 
         {Object.keys(system.trin[0].pos).map((noegle) => {
           const p = pos[noegle];
           if (!p) return null;
-          const modst = noegle.startsWith("M");
-          const modstNr = Number(noegle.slice(1));     // "M3" → 3
+          // "modst" = modstanderen (M-nøglerne i angreb, angriberne i forsvar)
+          const modst = !erVores(system, noegle);
           const spurgt = spm && noegle === spm.noegle && (visFase === "gaet" || visFase === "svar");
           // KUN den spurgte spiller kan trækkes, og kun mens man gætter
           const kanTraekkes = spurgt && visFase === "gaet";
-          const navn = modst ? "" : spillerNavn(noegle);
+          // Navne fra tavlen kun på vores angribere i et angrebssystem
+          const navn = modst || forsvar ? "" : spillerNavn(noegle);
           const klasse = "sbrik" + (modst ? " modst" : "") + (spurgt ? " quiz-spurgt" : "") +
                          (kanTraekkes ? " quiz-traekbar" : "") + (kanTraekkes && trukket ? " trukket" : "");
           return (
@@ -241,15 +249,15 @@ export default function Quiz({ system, spillerNavn, trinNavn, onAfslut }) {
               className={klasse}
               style={tilProcent(p.x, p.y)}
               title={kanTraekkes
-                ? `Træk ${noegle} derhen, hvor du tror han løber`
-                : modst ? "" : ROLLER[noegle]?.navn ?? noegle}
+                ? `Træk ${spillerTekst(noegle)} derhen, hvor du tror han løber`
+                : modst ? "" : forsvar ? brikNavn(noegle) : rolleInfo(noegle).navn}
               // Event-handlerne sættes kun på den brik, der må trækkes
               onPointerDown={kanTraekkes ? brikNed : undefined}
               onPointerMove={kanTraekkes ? brikFlyt : undefined}
               onPointerUp={kanTraekkes ? brikOp : undefined}
               onPointerCancel={kanTraekkes ? brikOp : undefined}
             >
-              {modst ? <ModstanderFigur nr={modstNr} /> : <HjemmeFigur rolle={noegle} tekst={noegle} />}
+              <SystemFigur noegle={noegle} forsvar={forsvar} />
               {navn && <span className="sbrik-navn">{navn}</span>}
             </div>
           );
@@ -260,10 +268,15 @@ export default function Quiz({ system, spillerNavn, trinNavn, onAfslut }) {
       {visFase === "gaet" && (
         <div className="trin-tekst quiz-bjaelke">
           <div>
-            <b>🎯 Spørgsmål {nr + 1} af {spoergsmaal.length}:</b> Hvor løber {spillerTekst(spm.noegle)} hen?
+            <b>🎯 Spørgsmål {nr + 1} af {spoergsmaal.length}:</b>{" "}
+            {forsvar
+              ? `Hvor flytter ${spillerTekst(spm.noegle)} hen?`
+              : `Hvor løber ${spillerTekst(spm.noegle)} hen?`}
           </div>
           <div className="quiz-hjaelp">
-            {gaet ? "Flyt ham igen, eller tryk Svar." : `Træk ${spm.noegle} derhen, hvor du tror han løber.`}
+            {gaet
+              ? "Flyt ham igen, eller tryk Svar."
+              : `Træk ${forsvar ? spillerTekst(spm.noegle) : spm.noegle} derhen, hvor du tror han ${forsvar ? "flytter" : "løber"}.`}
           </div>
           <div className="quiz-knapper">
             <button className="knap" onClick={onAfslut}>Afslut quiz</button>

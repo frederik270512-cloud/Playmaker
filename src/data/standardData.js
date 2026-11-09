@@ -4,6 +4,7 @@
 */
 import { PLADSER, FORSVAR, MODSTANDER_MV, ANGRIBERE } from "./konstanter.js";
 import { idagISO } from "../hjaelpere.js";
+import { skabeloner } from "./skabeloner.js";
 
 /*
   Hver spiller:
@@ -67,14 +68,21 @@ export function tomOpstilling() {
   Et nyt system med ét trin. Et trin er et "billede" af hvor alle står, og hvem der har bolden:
     { pos: { VF: {x, y}, ..., M0: {x, y}, M1: ... }, bold: "C", tekst: "forklaring" }
   bold er enten en spiller ("C") eller et punkt på banen ({x, y}) – i målet = skud.
+
+  type er "angreb" (vi angriber – standard) eller "forsvar" (vi forsvarer, se systemRoller.js).
+  Positionerne er de samme i begge typer – det er kun "hvem er os?", der skifter.
 */
-export function nytSystemData(navn, forsvar = "6-0") {
+export function nytSystemData(navn, forsvar = "6-0", type = "angreb") {
   const pos = {};
   for (const plads of PLADSER) {
     if (ANGRIBERE.includes(plads.rolle)) pos[plads.rolle] = { x: plads.x, y: plads.y };
   }
   startPositioner(forsvar).forEach((p, i) => { pos["M" + i] = p; });
-  return { id: Date.now(), navn, beskrivelse: "", forsvar, trin: [{ pos, bold: "C" }] };
+  return {
+    id: Date.now(), navn, beskrivelse: "", forsvar,
+    type: type === "forsvar" ? "forsvar" : "angreb",
+    trin: [{ pos, bold: "C" }],
+  };
 }
 
 export function eksempelSystem() {
@@ -170,7 +178,8 @@ export function standardData() {
     opstilling: tomOpstilling(),
     pladsPositioner: standardPladsPositioner(),
     modstander: { formation: "6-0", positioner: startPositioner("6-0") },
-    systemer: [eksempelSystem()],
+    // Eksemplet + de klassiske skabeloner (se skabeloner.js). Skabelonerne får id 2, 3, 4 ...
+    systemer: [eksempelSystem(), ...skabeloner(2)],
     modstandere: [eksempelModstander()],
     opstillinger: [],
     tegning: [],

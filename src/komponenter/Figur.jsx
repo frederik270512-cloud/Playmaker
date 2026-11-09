@@ -4,6 +4,7 @@
     <Figur farve="#facc15" tekstfarve="#1e1e1e" tekst={9} />
     <HjemmeFigur rolle="C" tekst={9} />      // vores trøjer: gul – målmand grå med lange ærmer
     <ModstanderFigur nr={3} />               // modstander: mørk – målmand (nr 0) mørkerød
+    <SystemFigur noegle="M3" forsvar />      // en brik i et system (vælger selv trøjen, se nederst)
 */
 import { HJEMME, MODSTANDER_FARVE, MODSTANDER_KANT, MODSTANDER_MV_FARVE } from "../data/konstanter.js";
 
@@ -37,4 +38,23 @@ export function ModstanderFigur({ nr, tekst, maalmand }) {
   return erMaalmand
     ? <Figur farve={MODSTANDER_MV_FARVE} tekstfarve="white" tekst={tekst ?? "MV"} kant={MODSTANDER_KANT} langaermet />
     : <Figur farve={MODSTANDER_FARVE} tekstfarve="white" tekst={tekst ?? nr} kant={MODSTANDER_KANT} />;
+}
+
+/*
+  En brik i et SYSTEM. Den finder selv ud af, hvilken trøje der skal på:
+    angrebssystem:  VF, VB ... = os (gul, rollekoden)    M0-M6 = modstander (mørk, nummer)
+    forsvarssystem: M1-M6 = os (gul, nummer), M0 = vores målmand (grå, "MV")
+                    VF, VB ... = modstanderens angribere (mørk, rollekoden)
+  tekst (valgfri) overskriver teksten på VORE angriberes trøjer (fx trøjenummeret på tavlen).
+*/
+export function SystemFigur({ noegle, forsvar = false, tekst }) {
+  const erM = noegle.startsWith("M");
+  const nr = Number(noegle.slice(1));        // "M3" → 3
+  if (!forsvar) {
+    return erM ? <ModstanderFigur nr={nr} /> : <HjemmeFigur rolle={noegle} tekst={tekst ?? noegle} />;
+  }
+  if (erM) {
+    return nr === 0 ? <HjemmeFigur rolle="MV" tekst="MV" /> : <HjemmeFigur rolle={noegle} tekst={nr} />;
+  }
+  return <ModstanderFigur maalmand={false} tekst={noegle} />;
 }
