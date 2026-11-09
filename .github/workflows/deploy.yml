@@ -1,0 +1,57 @@
+# UDGIV PÅ GITHUB PAGES
+# Hver gang du pusher til "main", bygger GitHub appen (npm run build)
+# og lægger den færdige udgave (mappen dist/) ud på GitHub Pages.
+# Du kan følge med under fanen "Actions" i dit repo.
+
+name: Udgiv på GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:        # gør det muligt at starte den manuelt fra fanen Actions
+
+# Rettigheder: læse koden og skrive til GitHub Pages
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Kun én udgivelse ad gangen – en ny afbryder en gammel, der stadig kører
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  byg:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Hent koden
+        uses: actions/checkout@v4
+
+      - name: Installer Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: npm
+
+      - name: Installer pakker
+        run: npm ci
+
+      - name: Byg appen
+        run: npm run build
+
+      - name: Pak den færdige app til GitHub Pages
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  udgiv:
+    needs: byg
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.udgivelse.outputs.page_url }}
+    steps:
+      - name: Udgiv
+        id: udgivelse
+        uses: actions/deploy-pages@v4

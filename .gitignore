@@ -4,6 +4,10 @@ node_modules/
 # Den færdigbyggede app (laves med "npm run build")
 dist/
 
+# Backup-filer med DINE data (fra "💾 Gem fil") må ALDRIG komme på GitHub
+playmaker-*.json
+taktiktavle-*.json
+
 # Midlertidige byggetjek
 .tjek-*/
 
