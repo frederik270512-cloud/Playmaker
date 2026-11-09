@@ -1,0 +1,28 @@
+/* =========================================================
+   TAKTIKTAVLEN: HEL BANE
+   (Importeres fra Taktiktavle.jsx. Resten af tavlens CSS står i styles.css.)
+   ========================================================= */
+
+/* Knapperne "Bane: Halv / Hel" i værktøjspanelet */
+.bane-valg { align-items: center; gap: 6px; }
+
+/* Den hele bane står på højkant og er næsten dobbelt så høj som den halve (230 x 460 i stedet for 230 x 252).
+   Bredden regnes ud fra skærmens højde – med samme fradrag (120px) som den halve bane i styles.css.
+   ".bane.hel" har to klasser, så den vinder over ".bane" (som kun har én). */
+.bane.hel {
+  width: min(100%, calc((100vh - 120px) * 230 / 460));
+  aspect-ratio: 230 / 460;
+}
+/* Smal skærm (telefon/iPad på højkant): banen fylder bredden, men højst 420px (ligesom på Systemer-siden) */
+@media (max-width: 1000px) {
+  .bane.hel { width: min(100%, 420px); }
+}
+
+/* Banen er lille i forhold til de 40 m – derfor lidt mindre brikker */
+.bane.hel .plads { width: 52px; height: 52px; }
+.bane.hel .brik-figur { width: 40px; height: 43px; }
+.bane.hel .brik-navn { font-size: 0.62rem; }
+.bane.hel .modstander { transform: translate(-50%, -50%) scale(0.65); }
+.bane.hel .sbrik { width: 34px; height: 37px; }
+.bane.hel .sbrik-navn { font-size: 0.6rem; padding: 0 5px; }
+.bane.hel .bold { width: 12px; height: 12px; }

@@ -26,6 +26,10 @@
 .kd-paa-banen:disabled { opacity: 0.35; cursor: not-allowed; }
 .kd-spiller.paa-banen { border-left-color: var(--ok); }
 
+/* "🧤 I mål:"-linjen under måltavlen */
+.kd-i-maal { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 8px 0 12px; }
+.kd-vis-alle { font-size: 0.85em; opacity: 0.85; }
+
 /* Målmandens redninger i rækken */
 .kd-redning-info { color: #fde68a; font-weight: 600; }
 .kd-knapper button.redning-knap { border-color: #a16207; }

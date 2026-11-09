@@ -53,9 +53,12 @@ export function startPositioner(formation) {
 }
 
 // Pladsernes standardpositioner på tavlen: { MV: {x, y}, VF: {x, y}, ... }
-export function standardPladsPositioner() {
+// helBane = true: tavlen viser HEL bane – så står vores målmand ved vores eget mål nederst (y = 386).
+// De andre pladser står samme sted (den øverste halvdel har samme koordinater som den halve bane).
+export function standardPladsPositioner(helBane = false) {
   const pos = {};
   for (const plads of PLADSER) pos[plads.rolle] = { x: plads.x, y: plads.y };
+  if (helBane) pos.MV = { x: 100, y: 386 };
   return pos;
 }
 
@@ -183,6 +186,7 @@ export function standardData() {
     modstandere: [eksempelModstander()],
     opstillinger: [],
     tegning: [],
+    tavleHelBane: false,   // viser taktiktavlen HEL bane? (knappen "Bane: Halv / Hel")
     kampdag: nyKampdag(),
     kampResultater: [],    // holdets resultater (Kampdag → Statistik)
     personligeMaal: [],    // personlige mål pr. spiller (Statistik/Spillere)

@@ -18,7 +18,7 @@ import { tilstandVed, boldPosition } from "../../animation.js";
 import {
   VARIANT_BOGSTAVER, harForgrening, findVariant, effektivtSystem, trinNavn as variantTrinNavn,
 } from "../../systemVarianter.js";
-import { tilProcent } from "../../hjaelpere.js";
+import { tilProcentI, baneViewBox, viewBoxTekst } from "../../hjaelpere.js";
 import { HjemmeFigur, SystemFigur } from "../../komponenter/Figur.jsx";
 import { TrinPile, PileLag } from "../../komponenter/Pile.jsx";
 import { erForsvarssystem, erVores } from "../../systemRoller.js";
@@ -141,9 +141,16 @@ const almindeligtTrinNavn = (index) => String(index + 1);
   Et FORSVARSSYSTEM vises med byttede roller (se systemRoller.js): vores forsvarsspillere i gule
   trøjer med numrene 1-6 (og vores målmand "MV"), modstanderens angribere i mørke trøjer.
   Her sætter vi IKKE navne fra opstillingen på – kun numre.
+
+  HEL BANE: helBane = true betyder, at TAVLEN viser hel bane. Så kan både systemer på hel bane
+  og på halv bane afspilles (et halvbane-system står bare i den øverste halvdel – samme koordinater).
+  I et system på hel bane er "VM" vores målmand (i angreb) – han får navnet fra tavlens MV-plads.
 */
-export function AfspilLag({ system, tid, opstilling, spillere, pladsPositioner, trinNavn = almindeligtTrinNavn }) {
+export function AfspilLag({ system, tid, opstilling, spillere, pladsPositioner, trinNavn = almindeligtTrinNavn, helBane = false }) {
   const findSpiller = id => spillere.find(s => s.id === id);
+  const vb = baneViewBox(helBane);                       // tavlens viewBox (halv eller hel bane)
+  const tilProcent = (x, y) => tilProcentI(vb, x, y);
+  const systemHel = system.helBane === true;
   const t = tilstandVed(system, tid);
   const paaTrin = Number.isInteger(tid);
   const bold = boldPosition(t);
@@ -158,11 +165,12 @@ export function AfspilLag({ system, tid, opstilling, spillere, pladsPositioner, 
     (paaTrin ? `Trin ${trinNavn(tid)} af ${system.trin.length}` : `Trin ${trinNavn(t.fraIndex)} → ${trinNavn(t.fraIndex + 1)}`);
 
   // Vores målmand fra tavlen – kun i angreb (i et forsvarssystem er vores målmand M0 i selve systemet)
-  const mv = forsvar ? null : findSpiller(opstilling.MV);
+  // (i et system på hel bane er han med i selve systemet som "VM" – så skal han ikke vises to gange)
+  const mv = forsvar || systemHel ? null : findSpiller(opstilling.MV);
 
   return (
     <div className="afspil-lag">
-      <PileLag synlighed={pile.synlighed}>
+      <PileLag synlighed={pile.synlighed} viewBox={viewBoxTekst(vb)}>
         <TrinPile fraTrin={pile.fra} tilTrin={pile.til} forsvar={forsvar} />
       </PileLag>
       <div className="bold vis-bold" style={tilProcent(bold.x, bold.y)} />
@@ -176,7 +184,9 @@ export function AfspilLag({ system, tid, opstilling, spillere, pladsPositioner, 
         const klasse = "sbrik" + (erVores(system, noegle) ? "" : " modst");
         // Spillere fra opstillingen kun på vores angribere i et angrebssystem.
         // ST2 har ingen plads i opstillingen → opstilling.ST2 findes ikke → ingen spiller.
-        const spiller = !forsvar && !noegle.startsWith("M") ? findSpiller(opstilling[noegle]) : null;
+        // "VM" (vores målmand på hel bane) hedder "MV" på tavlen.
+        const plads = noegle === "VM" ? "MV" : noegle;
+        const spiller = !forsvar && !noegle.startsWith("M") ? findSpiller(opstilling[plads]) : null;
         return (
           <div key={noegle} className={klasse} style={stil}>
             <SystemFigur noegle={noegle} forsvar={forsvar} tekst={spiller ? spiller.nummer : undefined} />
@@ -197,7 +207,8 @@ export function AfspilLag({ system, tid, opstilling, spillere, pladsPositioner, 
 }
 
 // Bjælken "◀ Systemer" og selve skuffen
-export default function Skuffe({ systemer, afspilning }) {
+// helBane = viser tavlen hel bane? Kun da kan systemer på hel bane vælges.
+export default function Skuffe({ systemer, afspilning, helBane = false }) {
   const [aaben, setAaben] = useState(false);
   const {
     system, heltSystem, variantId, vaelgVariant,
@@ -222,19 +233,21 @@ export default function Skuffe({ systemer, afspilning }) {
           {systemer.length === 0 && (
             <p className="tom-tekst">Du har ingen systemer endnu.<br />Lav dem under fanen Systemer.</p>
           )}
-          {/* Systemer på HEL bane (kontra) kan ikke vises på tavlens halve bane – de står der,
-              men kan ikke vælges (disabled) og får en lille note */}
-          {systemer.map(s => (
+          {/* Systemer på HEL bane (kontra) kan kun afspilles, når tavlen står på hel bane.
+              Ellers står de der, men kan ikke vælges (disabled) og får en lille note */}
+          {systemer.map(s => {
+            const spaerret = s.helBane === true && !helBane;
+            return (
             <button
               key={s.id}
               className={"skuffe-system" + (system && s.id === system.id ? " aktiv" : "")}
-              disabled={s.helBane === true}
-              title={s.helBane ? "Systemer på hel bane kan kun afspilles på Systemer-siden" : undefined}
-              style={s.helBane ? { opacity: 0.5, cursor: "not-allowed" } : undefined}
-              onClick={() => { if (!s.helBane) vaelg(s.id); }}
+              disabled={spaerret}
+              title={spaerret ? "Skift tavlen til hel bane (Bane: Hel) for at afspille systemet" : undefined}
+              style={spaerret ? { opacity: 0.5, cursor: "not-allowed" } : undefined}
+              onClick={() => { if (!spaerret) vaelg(s.id); }}
             >
               <b>{s.navn}</b>
-              {s.helBane && <small>🔄 Hel bane – kun på Systemer-siden</small>}
+              {s.helBane && <small>{spaerret ? "🔄 Hel bane – skift tavlen til hel bane" : "🔄 Hel bane"}</small>}
               <small>
                 {erForsvarssystem(s) && "🛡️ Forsvar · "}
                 {harForgrening(s)
@@ -243,7 +256,8 @@ export default function Skuffe({ systemer, afspilning }) {
                 {" · "}{s.forsvar ? s.forsvar + "-forsvar" : "uden forsvar"}
               </small>
             </button>
-          ))}
+            );
+          })}
         </div>
 
         {/* Afspilleren – vises kun, når man har valgt et system */}

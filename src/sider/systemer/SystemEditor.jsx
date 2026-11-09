@@ -75,19 +75,8 @@ export default function SystemEditor({ systemId, nytSystem, onLuk }) {
   const optager = optagelse !== null;
   useEffect(() => () => optagStyring.current?.abort(), []);   // siden lukkes → stop optagelsen
 
-  /*
-    💬 TEKSTHJÆLP: viser trinnets tekst i en bjælke under banen.
-    Den er slået FRA som standard. Valget huskes i browseren (localStorage),
-    så den står som sidst, næste gang man åbner et system.
-  */
-  const [visTekst, setVisTekst] = useState(() => {
-    try { return localStorage.getItem("playmaker-vis-tekst") === "ja"; } catch { return false; }
-  });
-  function skiftVisTekst() {
-    const ny = !visTekst;
-    setVisTekst(ny);
-    try { localStorage.setItem("playmaker-vis-tekst", ny ? "ja" : "nej"); } catch { /* ikke vigtigt */ }
-  }
+  // Tekst under banen er fjernet (ejerens ønske). Trinenes tekster bruges stadig i quizzens feedback.
+  const visTekst = false;
 
   // Den gemte udgave fra appens data (undefined hvis systemet er nyt eller slettet)
   const gemt = data.systemer.find(s => s.id === systemId);
@@ -722,14 +711,6 @@ export default function SystemEditor({ systemId, nytSystem, onLuk }) {
           trinNavn={navnPaaTrin}
         />
 
-        {/* 💬 Tekstbjælken under banen – kun når tekst-hjælpen er slået til */}
-        {visTekst && (
-          <div className={"trin-tekst" + (aktuelTekst ? "" : " tom")}>
-            <b>💬 Trin {navnPaaTrin(tekstTrinIndex)}:</b>{" "}
-            {aktuelTekst || "Ingen tekst til dette trin."}
-          </div>
-        )}
-
         {/* 🔀 Har systemet varianter, vælger man her, hvilken der skal afspilles (før man trykker Start) */}
         {forgrenet && (
           <div className="variant-vaelger">
@@ -773,14 +754,6 @@ export default function SystemEditor({ systemId, nytSystem, onLuk }) {
             <option value={1.5}>Normal</option>
             <option value={0.8}>Hurtig</option>
           </select>
-          {/* Slå tekst-hjælpen til/fra */}
-          <button
-            className={"knap" + (visTekst ? " aktiv-knap" : "")}
-            title="Vis forklarende tekst til hvert trin"
-            onClick={skiftVisTekst}
-          >
-            💬 Tekst
-          </button>
         </div>
         </>
         )}
@@ -875,19 +848,6 @@ export default function SystemEditor({ systemId, nytSystem, onLuk }) {
           </div>
           <p className="hjaelp">{trinHjaelp}</p>
 
-          {/* Tekst til det trin, man står på (vises under banen, når 💬 Tekst er slået til) */}
-          {trinIndex !== null && (
-            <label className="felt">💬 Tekst til trin {navnPaaTrin(trinIndex)}
-              <textarea
-                rows={2}
-                maxLength={200}
-                disabled={!kanRedigere}
-                placeholder="Fx: C binder 3'eren – kig efter VB i ryggen"
-                value={effektiv.trin[trinIndex]?.tekst || ""}
-                onChange={(e) => { const tekst = e.target.value; aendrTrin(trinIndex, t => ({ ...t, tekst })); }}
-              />
-            </label>
-          )}
 
           <div className="knap-raekke">
             <button className="knap knap-primaer" disabled={!kanRedigere} onClick={optagTrin}>⏺ Optag næste trin</button>

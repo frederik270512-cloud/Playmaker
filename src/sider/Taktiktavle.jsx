@@ -19,18 +19,24 @@ import { createPortal } from "react-dom";
 import { useData } from "../DataKontekst.jsx";
 import { ROLLER, PLADSER, MODSTANDER_FARVE, MODSTANDER_KANT, HJEMME } from "../data/konstanter.js";
 import { startPositioner, standardPladsPositioner, tomOpstilling } from "../data/standardData.js";
-import { aktivSkade, passerTilPlads, sorteretTrup, tilProcent } from "../hjaelpere.js";
+import { aktivSkade, passerTilPlads, sorteretTrup, tilProcentI, baneViewBox } from "../hjaelpere.js";
 import BaneSVG from "../komponenter/BaneSVG.jsx";
 import { ModstanderFigur } from "../komponenter/Figur.jsx";
 import Brik from "./tavle/Brik.jsx";
 import Tegning from "./tavle/Tegning.jsx";
 import Opstillinger from "./tavle/Opstillinger.jsx";
 import Skuffe, { AfspilLag, useTavleAfspilning } from "./tavle/Skuffe.jsx";
-import { findPladsFor, saetPaaPlads, sendTilPanel, skaermTilTavle } from "./tavle/tavleHjaelpere.js";
+import { findPladsFor, saetPaaPlads, sendTilPanel, skaermTilTavle, skiftTavleBane } from "./tavle/tavleHjaelpere.js";
+import "./tavle/Tavle.css";
 
 export default function Taktiktavle() {
   const { data, opdater } = useData();
   const findSpiller = id => data.spillere.find(s => s.id === id);
+
+  // HALV eller HEL bane? (gemmes i data, så tavlen husker det). Alle omregninger bruger den rigtige viewBox.
+  const helBane = data.tavleHelBane === true;
+  const vb = baneViewBox(helBane);
+  const tilProcent = (x, y) => tilProcentI(vb, x, y);
 
   /* ---------- STATE (det siden selv skal huske) ---------- */
   // Spilleren man har trykket på (tryk-for-at-flytte) – eller null
@@ -164,7 +170,7 @@ export default function Taktiktavle() {
 
     const maal = findMaal(e.clientX, e.clientY);
     // Brikkens midte (der hvor brikken står, ikke der hvor fingeren er)
-    const punkt = skaermTilTavle(baneRef.current, e.clientX - t.greb.x, e.clientY - t.greb.y);
+    const punkt = skaermTilTavle(baneRef.current, e.clientX - t.greb.x, e.clientY - t.greb.y, helBane);
 
     if (t.hvad.type === "modstander") {
       if (maal && maal.type !== "baenk") {
@@ -231,7 +237,7 @@ export default function Taktiktavle() {
     } else if (maal.type === "baenk") {
       opdater(d => sendTilPanel(d, id));
     } else if (fraPlads !== null) {
-      const punkt = skaermTilTavle(baneRef.current, e.clientX, e.clientY);
+      const punkt = skaermTilTavle(baneRef.current, e.clientX, e.clientY, helBane);
       opdater(d => { d.pladsPositioner[fraPlads] = punkt; });
     }
   }
@@ -272,7 +278,7 @@ export default function Taktiktavle() {
 
   // "↺ Ret op": alle pladser tilbage på standardpositionerne (spillerne bliver på banen)
   function retOp() {
-    opdater(d => { d.pladsPositioner = standardPladsPositioner(); });
+    opdater(d => { d.pladsPositioner = standardPladsPositioner(helBane); });
   }
 
   // Nulstil: alle spillere på bænken, pladserne og modstanderne tilbage på standardpladserne
@@ -280,9 +286,16 @@ export default function Taktiktavle() {
     setValgt(null);
     opdater(d => {
       d.opstilling = tomOpstilling();
-      d.pladsPositioner = standardPladsPositioner();
+      d.pladsPositioner = standardPladsPositioner(helBane);
       d.modstander.positioner = startPositioner(d.modstander.formation);
     });
+  }
+
+  // "Bane: Halv / Hel". Afspilles et system på hel bane, stoppes det, når vi går til halv bane.
+  function skiftBane(hel) {
+    if (hel === helBane) return;
+    if (!hel && afspilning.system?.helBane) afspilning.stop();
+    opdater(d => skiftTavleBane(d, hel));
   }
 
   /* ---------- SPØGELSESBRIKKEN ----------
@@ -321,16 +334,17 @@ export default function Taktiktavle() {
   const baneKlasser = "bane" +
     (tegneAktiv ? " tegner" : "") +
     (tegneAktiv && vaerktoej === "visk" ? " visker" : "") +
-    (afspilning.system ? " afspiller-aktiv" : "");
+    (afspilning.system ? " afspiller-aktiv" : "") +
+    (helBane ? " hel" : "");
 
   return (
     <main className="side side-tavle">
       {/* ===================== VENSTRE SIDE: BANEN ===================== */}
       <section className="bane-omraade">
         <div ref={baneRef} className={baneKlasser} onClick={trykPaaTavle}>
-          <BaneSVG />
+          <BaneSVG helBane={helBane} />
 
-          <Tegning aktiv={tegneAktiv} vaerktoej={vaerktoej} setVaerktoej={setVaerktoej} />
+          <Tegning aktiv={tegneAktiv} vaerktoej={vaerktoej} setVaerktoej={setVaerktoej} helBane={helBane} />
 
           {/* Et system der afspilles på tavlen (styres fra skuffen) */}
           {afspilning.system && (
@@ -341,6 +355,7 @@ export default function Taktiktavle() {
               opstilling={data.opstilling}
               spillere={data.spillere}
               pladsPositioner={data.pladsPositioner}
+              helBane={helBane}
             />
           )}
 
@@ -399,6 +414,12 @@ export default function Taktiktavle() {
               </select>
             </label>
             <span className="status">På banen: {antalPaaBanen}/7</span>
+          </div>
+          {/* Halv eller hel bane – to knapper, hvor den valgte er "tændt" */}
+          <div className="tavle-vaerktoej-raekke bane-valg" title="Vis halv eller hel bane">
+            Bane:
+            <button className={"knap knap-lille" + (!helBane ? " aktiv-knap" : "")} onClick={() => skiftBane(false)}>Halv</button>
+            <button className={"knap knap-lille" + (helBane ? " aktiv-knap" : "")} onClick={() => skiftBane(true)}>Hel</button>
           </div>
           <div className="tavle-vaerktoej-raekke">
             <button
@@ -463,7 +484,7 @@ export default function Taktiktavle() {
       </aside>
 
       {/* ========== SKUFFEN: afspil systemer på tavlen ========== */}
-      <Skuffe systemer={data.systemer} afspilning={afspilning} />
+      <Skuffe systemer={data.systemer} afspilning={afspilning} helBane={helBane} />
 
       {lavSpoegelse()}
     </main>

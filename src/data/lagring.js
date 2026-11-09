@@ -134,6 +134,8 @@ export function normaliser(ind, grundlag) {
   }
   if (Array.isArray(ind.opstillinger)) d.opstillinger = ind.opstillinger;
   if (Array.isArray(ind.tegning)) d.tegning = ind.tegning;
+  // Viser taktiktavlen hel bane? (kun true tæller – alt andet er halv bane)
+  d.tavleHelBane = ind.tavleHelBane === true;
 
   // Holdets kampresultater (skrives af Kampdag, når en kamp afsluttes): { id, dato, modstander, hjemme, ude }
   if (Array.isArray(ind.kampResultater)) {

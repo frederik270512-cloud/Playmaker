@@ -27,6 +27,7 @@
 
   Nye felter i data.kampdag (gamle gemte kampe har dem ikke – derfor "?? {}"):
     paaBanen: { spillerId: { sek, fra } }   sek = spilletid før, fra = kamptid da spilleren kom ind (null = på bænken)
+    aktivMaalmandId                         hvem står "🧤 I mål" (mangler i gamle data → første MV der er med)
     stats[spillerId].redninger              antal redninger
     haendelser: { ..., hjoerne: "hoej-venstre", maalmandId }   (maalmandId på "Mål til dem")
 */
@@ -119,20 +120,33 @@ const deresMaal = h => h.type === "modmaal";
 
 /* ---------- Målmænd ---------- */
 /*
-  Redningsprocent for en målmand = redninger / (redninger + mål imod).
-  Mål imod: Var præcis ÉN målmand markeret "på banen", da modstanderen scorede,
-  gemte vi hans id på hændelsen (maalmandId) – så tæller målet kun imod ham.
-  Mål uden en bestemt målmand (ingen eller flere markeret) tæller imod ALLE målmænd.
-  Vi bruger k.ude (stillingen) som "alle mål", så −1-rettelser også kommer med.
+  "🧤 I mål": træneren vælger selv, hvem der står i mål (k.aktivMaalmandId).
+  Gamle gemte kampe har ikke feltet – så bruger vi den første målmand (MV), der er med.
+  Er den valgte spiller slettet eller ikke med længere, falder vi også tilbage.
 */
-function maalmandTal(k, spillerId) {
+function aktivMaalmandId(k, spillere) {
+  const valgt = spillere.find(s => s.id === k.aktivMaalmandId);
+  if (valgt && erMed(k, valgt)) return valgt.id;
+  const foerste = sorteretTrup(spillere).find(s => s.rolle === "MV" && erMed(k, s));
+  return foerste ? foerste.id : null;
+}
+
+/*
+  Redningsprocent for en målmand = hans redninger / (hans redninger + mål imod HAM).
+  Mål imod: hvert "Mål til dem" får id'et på den målmand, der stod i mål (maalmandId).
+  Gamle hændelser UDEN maalmandId tæller kun med, hvis der var præcis én målmand
+  med i kampen – ellers ved vi ikke hvem, og så springer vi dem over i procenten.
+*/
+function maalmandTal(k, spillerId, spillere) {
   const redninger = statsAf(k, spillerId).redninger;
-  const tildelt = k.haendelser.filter(h => h.type === "modmaal" && h.maalmandId != null);
-  const mine = tildelt.filter(h => h.maalmandId === spillerId).length;
-  const utildelt = Math.max(0, k.ude - tildelt.length);
-  const maalImod = mine + utildelt;
+  const modmaal = k.haendelser.filter(h => h.type === "modmaal");
+  const mine = modmaal.filter(h => h.maalmandId === spillerId).length;
+  const maalmaend = spillere.filter(s => s.rolle === "MV" && erMed(k, s));
+  const eneste = maalmaend.length === 1 && maalmaend[0].id === spillerId;
+  const gamle = eneste ? modmaal.filter(h => h.maalmandId == null).length : 0;
+  const maalImod = mine + gamle;
   const skud = redninger + maalImod;
-  return { redninger, maalImod, mine, procent: skud ? Math.round((redninger / skud) * 100) : null };
+  return { redninger, maalImod, procent: skud ? Math.round((redninger / skud) * 100) : null };
 }
 
 // De 3 felter hvor modstanderen har scoret mest – til teksten når kampen afsluttes
@@ -174,6 +188,8 @@ export default function Kampdag() {
   const [hjoerneSpoerg, setHjoerneSpoerg] = useState(null);
   // Skudkortet til højre: "vores" skud eller "imod" (modstanderens mål)
   const [skudVisning, setSkudVisning] = useState("vores");
+  // "Vis alle" i "🧤 I mål"-vælgeren: så kan man også sætte en markspiller i mål
+  const [visAlleIMaal, setVisAlleIMaal] = useState(false);
 
   // "nu" = tidspunktet siden sidst blev tegnet. Intervallet nedenfor sætter det
   // 4 gange i sekundet – og fordi det er state, tegner React siden forfra hver gang.
@@ -286,12 +302,24 @@ export default function Kampdag() {
       const k = d.kampdag;
       k.ude++;
       const haendelse = { id: haendelseId, type: "modmaal" };
-      // Står der præcis én målmand "på banen", skrives målet på ham (til redningsprocenten)
-      const maalmaend = d.spillere.filter(s => s.rolle === "MV" && erPaaBanen(k, s.id));
-      if (maalmaend.length === 1) haendelse.maalmandId = maalmaend[0].id;
+      // Målet skrives på den målmand, der står "🧤 I mål" lige nu (til redningsprocenten)
+      const mv = aktivMaalmandId(k, d.spillere);
+      if (mv != null) haendelse.maalmandId = mv;
       tilfoejHaendelse(k, tidNu, haendelse);
     });
     setHjoerneSpoerg({ haendelseId, titel: `⚽ Mål til ${kampdag.modstander || "modstanderen"}` });
+  }
+
+  // "🧤 I mål:"-vælgeren: skift målmand. Gælder kun hændelser, der kommer EFTER skiftet.
+  function skiftMaalmand(id) {
+    const tidNu = Date.now();
+    opdater(d => {
+      const k = d.kampdag;
+      if (k.aktivMaalmandId === id) return;
+      k.aktivMaalmandId = id;
+      const s = d.spillere.find(x => x.id === id);
+      if (s) tilfoejHaendelse(k, tidNu, { type: "info", tekst: `🧤 ${s.navn} i mål` });
+    });
   }
 
   // Svar fra "Hvor i målet?"-boksen: skriv hjørnet på hændelsen
@@ -355,8 +383,8 @@ export default function Kampdag() {
     // Ekstra linjer i opsummeringen: målmændenes redninger og hvor modstanderen scorede
     const linjer = [];
     for (const s of data.spillere) {
-      if (s.rolle !== "MV" || !medIds.includes(s.id)) continue;
-      const mt = maalmandTal(kampdag, s.id);
+      if (!medIds.includes(s.id)) continue;
+      const mt = maalmandTal(kampdag, s.id, data.spillere);
       if (mt.redninger > 0) linjer.push(`🧤 ${s.navn}: ${mt.redninger} redninger (${mt.procent}%)`);
     }
     const imodTop = topHjoerner(skudKortAf(kampdag.haendelser, deresMaal));
@@ -396,13 +424,13 @@ export default function Kampdag() {
         const kort = skudKortAf(k.haendelser, h => voresSkud(h) && h.spillerId === spiller.id);
         if (harSkudData(kort)) kamp.skudKort = kort;
 
-        // Målmand: gem redninger + mål imod – men kun hvis han faktisk har været i spil
-        if (spiller.rolle === "MV") {
-          const mt = maalmandTal(k, spiller.id);
-          if (mt.redninger > 0 || mt.mine > 0 || sek > 0) {
-            kamp.redninger = mt.redninger;
-            kamp.maalImod = mt.maalImod;
-          }
+        // Målmand: gem redninger + mål imod – men kun hvis han faktisk har stået i mål
+        // (også en markspiller, der er sat "🧤 I mål" og har redninger/mål imod)
+        const mt = maalmandTal(k, spiller.id, d.spillere);
+        const harStaaetIMaal = mt.redninger > 0 || mt.maalImod > 0;
+        if (harStaaetIMaal || (spiller.rolle === "MV" && sek > 0)) {
+          kamp.redninger = mt.redninger;
+          kamp.maalImod = mt.maalImod;
         }
         spiller.kampe.push(kamp);
       }
@@ -447,7 +475,13 @@ export default function Kampdag() {
     return `${handling.ikon} ${handling.navn} – ${spiller ? `#${spiller.nummer} ${spiller.navn}` : "(slettet spiller)"}${hjoerne}`;
   }
 
-  const kanFortryde = kampdag.haendelser.some(h => h.type !== "info");
+  // Hvem står i mål lige nu, og hvem kan vælges? (MV-spillere – eller alle, hvis "Vis alle" er slået til)
+  const iMaalId = aktivMaalmandId(kampdag, data.spillere);
+  const iMaal = findSpiller(iMaalId);
+  const maalmandValg = sorteretTrup(data.spillere)
+    .filter(s => erMed(kampdag, s) && (visAlleIMaal || s.rolle === "MV" || s.id === iMaalId));
+
+  const kanFortryde =kampdag.haendelser.some(h => h.type !== "info");
 
   // Skudkortet til højre – regnes ud fra hændelserne hver gang siden tegnes
   const skudKort = skudVisning === "imod"
@@ -523,6 +557,34 @@ export default function Kampdag() {
         </div>
       </div>
 
+      {/* Hvem står i mål? Mål til dem og redninger skrives på denne spiller */}
+      <div className="kd-i-maal">
+        <label>
+          <b>🧤 I mål:</b>{" "}
+          <select
+            className="lille-valg"
+            value={iMaalId ?? ""}
+            // <select> giver altid en tekst – find spilleren, så id'et beholder sin rigtige type
+            onChange={e => { const s = data.spillere.find(x => String(x.id) === e.target.value); if (s) skiftMaalmand(s.id); }}
+          >
+            {iMaalId == null && <option value="">– vælg målmand –</option>}
+            {maalmandValg.map(s => (
+              <option key={s.id} value={s.id}>#{s.nummer} {s.navn}{s.rolle !== "MV" ? ` (${s.rolle})` : ""}</option>
+            ))}
+          </select>
+        </label>
+        <label className="kd-vis-alle">
+          <input type="checkbox" checked={visAlleIMaal} onChange={e => setVisAlleIMaal(e.target.checked)} /> Vis alle
+        </label>
+        <button className="knap knap-lille redning-knap" disabled={iMaalId == null} onClick={() => registrer(iMaalId, "redning")}>
+          {REDNING.ikon} {REDNING.navn}
+        </button>
+        {iMaal && (() => {
+          const mt = maalmandTal(kampdag, iMaal.id, data.spillere);
+          return <span className="kd-redning-info">{mt.redninger} redn. · {mt.maalImod} mål imod{mt.procent !== null ? ` (${mt.procent}%)` : ""}</span>;
+        })()}
+      </div>
+
       <div className="kampdag-gitter">
         {/* Venstre: vores spillere med knapper */}
         <section className="kort">
@@ -541,7 +603,8 @@ export default function Kampdag() {
               const troeje = erMaalmand ? HJEMME.maalmand : HJEMME.mark;
               const paaBanen = erPaaBanen(kampdag, spiller.id);
               const spillet = spilletid(kampdag, spiller.id, Math.min(tid, halvlegSlut(kampdag)));
-              const mt = erMaalmand ? maalmandTal(kampdag, spiller.id) : null;
+              const erIMaal = spiller.id === iMaalId;
+              const mt = erMaalmand || erIMaal ? maalmandTal(kampdag, spiller.id, data.spillere) : null;
               return (
                 // key: spillerens id, så React kan genkende rækken fra gang til gang
                 <div key={spiller.id} className={"kd-spiller" + (med ? "" : " ikke-med") + (udvisning ? " udvist" : "") + (paaBanen ? " paa-banen" : "")}>
@@ -591,7 +654,8 @@ export default function Kampdag() {
                         {h.ikon} {h.navn}
                       </button>
                     ))}
-                    {erMaalmand && (
+                    {/* Redning-knappen står kun ved den, der er "🧤 I mål" – så kan man ikke ramme forkert */}
+                    {erIMaal && (
                       <button className="redning-knap" disabled={!med} onClick={() => registrer(spiller.id, "redning")}>
                         {REDNING.ikon} {REDNING.navn}
                       </button>

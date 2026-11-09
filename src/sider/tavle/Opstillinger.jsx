@@ -24,6 +24,7 @@ export default function Opstillinger() {
         opstilling: { ...d.opstilling },
         pladsPositioner: structuredClone(d.pladsPositioner),
         modstander: structuredClone(d.modstander),
+        tavleHelBane: d.tavleHelBane === true,   // halv eller hel bane
       });
     });
     setNavn("");
@@ -38,7 +39,9 @@ export default function Opstillinger() {
         d.opstilling[plads] = findes(id) ? id : null;
       }
       // (standardpositionerne bruges, hvis den gemte mangler en plads)
-      d.pladsPositioner = { ...standardPladsPositioner(), ...structuredClone(gemt.pladsPositioner) };
+      // Banen (halv/hel) hentes også. Gamle opstillinger uden feltet er på halv bane.
+      d.tavleHelBane = gemt.tavleHelBane === true;
+      d.pladsPositioner = { ...standardPladsPositioner(d.tavleHelBane), ...structuredClone(gemt.pladsPositioner) };
       d.modstander.formation = gemt.modstander.formation;
       d.modstander.positioner = structuredClone(gemt.modstander.positioner);
     });
@@ -76,7 +79,7 @@ export default function Opstillinger() {
             <div key={gemt.id} className="opstilling-punkt">
               <div className="navn">
                 <b>{gemt.navn}</b>
-                <small>{antal}/7 spillere · {formation ? formation + "-forsvar" : "intet forsvar"}</small>
+                <small>{antal}/7 spillere · {gemt.tavleHelBane ? "hel bane · " : ""}{formation ? formation + "-forsvar" : "intet forsvar"}</small>
               </div>
               <button className="knap knap-lille" title="Sæt opstillingen på tavlen" onClick={() => hent(gemt)}>↻ Hent</button>
               <button className="slet-x" title="Slet opstilling" onClick={() => slet(gemt)}>×</button>

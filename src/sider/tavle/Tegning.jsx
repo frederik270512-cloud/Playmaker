@@ -10,12 +10,13 @@
     aktiv          – er "✏️ Tegn" slået til?
     vaerktoej      – "fri", "pil" eller "visk" (viskelæder)
     setVaerktoej   – skift værktøj (staten bor i Taktiktavle, fordi banen skal have klassen "visker")
+    helBane        – viser tavlen hel bane? Så bruger tegnelaget den hele banes viewBox
 */
 import { useRef, useState } from "react";
 import { useData } from "../../DataKontekst.jsx";
 import { useDialog } from "../../komponenter/Dialog.jsx";
 import { Pil } from "../../komponenter/Pile.jsx";
-import { skaermTilBane } from "../../hjaelpere.js";
+import { skaermTilBaneI, baneViewBox, viewBoxTekst } from "../../hjaelpere.js";
 
 const FARVER = [
   { farve: "#ffffff", navn: "Hvid" },
@@ -57,7 +58,8 @@ function Streg({ streg, index }) {
   );
 }
 
-export default function Tegning({ aktiv, vaerktoej, setVaerktoej }) {
+export default function Tegning({ aktiv, vaerktoej, setVaerktoej, helBane = false }) {
+  const vb = baneViewBox(helBane);   // halv eller hel bane
   const { data, opdater } = useData();
   const { bekraeftSlet } = useDialog();
   const [farve, setFarve] = useState("#ffffff");
@@ -90,14 +92,14 @@ export default function Tegning({ aktiv, vaerktoej, setVaerktoej }) {
     e.preventDefault();
     // "Pointer capture": alle bevægelser sendes til laget, også hvis man kommer uden for det
     try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* ikke afgørende – virker også uden */ }
-    const p = skaermTilBane(e.currentTarget, e.clientX, e.clientY);
+    const p = skaermTilBaneI(vb, e.currentTarget, e.clientX, e.clientY);
     saetStreg({ type: vaerktoej, farve, punkter: [p, p] });
   }
 
   function bevaeg(e) {
     const s = stregRef.current;
     if (!s) return;
-    const p = skaermTilBane(e.currentTarget, e.clientX, e.clientY);
+    const p = skaermTilBaneI(vb, e.currentTarget, e.clientX, e.clientY);
     let punkter;
     if (s.type === "pil") {
       punkter = [s.punkter[0], p];                       // en pil har kun start og slut
@@ -139,7 +141,7 @@ export default function Tegning({ aktiv, vaerktoej, setVaerktoej }) {
       {/* Tegnelaget: samme viewBox som banen, så tegningen skalerer med */}
       <svg
         className="tegne-lag"
-        viewBox="-15 -30 230 252"
+        viewBox={viewBoxTekst(vb)}
         onPointerDown={trykNed}
         onPointerMove={bevaeg}
         onPointerUp={slip}
