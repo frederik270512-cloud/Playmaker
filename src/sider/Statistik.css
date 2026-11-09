@@ -1,0 +1,200 @@
+/* =========================================================
+   SIDE 7: STATISTIK
+   Bruger farverne fra :root i styles.css (--panel, --kant, --tekst-svag ...),
+   så siden passer til resten af appens mørke tema.
+   ========================================================= */
+
+/* Siden: kortene i et gitter med 2 kolonner. Hele siden scroller. */
+.side-statistik {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-content: start;
+  gap: 20px;
+  padding: 20px;
+  min-height: 0;
+  overflow-y: auto;
+}
+.side-statistik > * { min-width: 0; }      /* kolonnerne må blive smallere end indholdet */
+.stat-bred { grid-column: 1 / -1; }        /* tabellen og grafen fylder hele bredden */
+.stat-kort { overflow-y: visible; }        /* kortene vokser med indholdet – siden scroller */
+.stat-kort h4 { margin: 14px 0 6px; font-size: 0.95rem; }
+
+/* Valgfelter (spiller, måling ...) ved siden af hinanden – under hinanden på smal skærm */
+.stat-valg { margin-bottom: 12px; flex-wrap: wrap; }
+.stat-valg .felt { min-width: 160px; }
+
+/* ---------- Topscorer-tabellen ---------- */
+/* Tabellen scroller sidelæns INDE i kortet (kortet selv må ikke få vandret scroll) */
+.tabel-rulle { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.stat-tabel { min-width: 640px; }
+.stat-tabel th { white-space: nowrap; padding: 0; }
+.stat-tabel th:first-child { padding: 4px 6px; }
+.stat-tabel td { white-space: nowrap; }
+.stat-navn-celle small { color: var(--tekst-svag); font-size: 0.72rem; }
+
+/* Overskrifterne er knapper (så de kan klikkes og nås med Tab) */
+.sorter-knap {
+  background: none;
+  border: none;
+  color: inherit;
+  font: inherit;
+  text-transform: inherit;
+  letter-spacing: inherit;
+  padding: 4px 6px;
+  cursor: pointer;
+  width: 100%;
+  text-align: inherit;
+  white-space: nowrap;
+}
+.sorter-knap:hover { color: var(--tekst); }
+.sorter-knap.aktiv { color: var(--fremhaev); }
+.sorter-pil { margin-left: 4px; opacity: 0.5; font-size: 0.65rem; }
+.sorter-knap.aktiv .sorter-pil { opacity: 1; }
+.stat-tabel th.tal .sorter-knap { text-align: center; }
+
+.stat-tabel td.sorteret { background: rgba(253, 224, 71, 0.06); }   /* svagt gult skær på den sorterede kolonne */
+.stat-tabel tbody tr:hover td { background: var(--panel-lys); }
+
+/* Top 3: guld, sølv og bronze i kanten */
+.stat-tabel tr.top-1 td { background: rgba(250, 204, 21, 0.12); }
+.stat-tabel tr.top-2 td { background: rgba(203, 213, 225, 0.09); }
+.stat-tabel tr.top-3 td { background: rgba(217, 119, 6, 0.10); }
+.stat-tabel tr.top-1 td:first-child { box-shadow: inset 4px 0 0 #facc15; }
+.stat-tabel tr.top-2 td:first-child { box-shadow: inset 4px 0 0 #cbd5e1; }
+.stat-tabel tr.top-3 td:first-child { box-shadow: inset 4px 0 0 #d97706; }
+
+/* ---------- Grafen ---------- */
+.graf-boks {
+  position: relative;         /* info-boksen placeres i forhold til grafen */
+  width: 100%;
+  overflow-x: auto;           /* kun hvis skærmen er smallere end grafens mindste bredde */
+}
+.graf { display: block; touch-action: pan-y; }   /* tryk på grafen må stadig gerne scrolle siden op/ned */
+.graf-gitter { stroke: var(--kant); stroke-width: 1; stroke-dasharray: 2 4; }
+.graf-akse { stroke: var(--tekst-svag); stroke-width: 1; }
+.graf-akse-tal { fill: var(--tekst-svag); font-size: 11px; }
+.graf-soejle { fill: var(--blaa); transition: fill 0.15s; }
+.graf-soejle.aktiv { fill: #93c5fd; }
+.graf-linje { fill: none; stroke: #60a5fa; stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; }
+.graf-prik { fill: var(--panel); stroke: #60a5fa; stroke-width: 2.5; }
+.graf-prik.aktiv { fill: #93c5fd; }
+.graf-snit { stroke: var(--fremhaev); stroke-width: 1.5; stroke-dasharray: 6 4; opacity: 0.8; }
+.graf-snit-tekst { fill: var(--fremhaev); font-size: 11px; font-weight: 600; }
+.graf-fang { fill: transparent; cursor: pointer; outline: none; }
+.graf-fang:hover, .graf-fang:focus { fill: rgba(148, 163, 184, 0.08); }
+
+/* Info-boksen med det præcise tal */
+.graf-info {
+  position: absolute;
+  transform: translate(-50%, calc(-100% - 10px));   /* centreret over punktet */
+  background: var(--baggrund);
+  border: 1px solid var(--kant);
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 0.78rem;
+  color: var(--tekst-svag);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: none;      /* boksen må ikke "stjæle" musen fra grafen */
+  white-space: nowrap;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+}
+.graf-info b { color: var(--tekst); font-size: 1rem; }
+.graf-tom { padding: 30px 0; }
+
+/* ---------- Holdets resultater ---------- */
+.resultat-gitter { grid-template-columns: repeat(6, 1fr); margin-top: 0; margin-bottom: 8px; }
+.resultat-liste { display: flex; flex-direction: column; gap: 6px; margin-top: 12px; }
+.resultat {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--panel-lys);
+  border-radius: 8px;
+  padding: 8px 12px;
+}
+.resultat.ukendt { background: transparent; border: 1px dashed var(--kant); }
+.resultat-info { flex: 1; min-width: 0; }
+.resultat-info b { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.resultat-info small, .resultat-score small { color: var(--tekst-svag); font-size: 0.75rem; }
+.resultat-score { display: flex; flex-direction: column; align-items: flex-end; text-align: right; white-space: nowrap; }
+.resultat-score > b { font-size: 1.1rem; font-variant-numeric: tabular-nums; }
+.resultat-score small.plus { color: #86efac; }
+.resultat-score small.minus { color: #fca5a5; }
+
+/* V/U/T-mærket: grøn, grå, rød */
+.udfald-maerke {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  display: grid;
+  place-items: center;
+  font-weight: 800;
+  font-size: 0.85rem;
+}
+.udfald-V { background: var(--ok); color: #052e16; }
+.udfald-U { background: #64748b; color: #f8fafc; }
+.udfald-T { background: var(--fare); color: #fff; }
+.udfald-ukendt { background: transparent; border: 1px dashed var(--tekst-svag); color: var(--tekst-svag); }
+
+/* ---------- Personlige mål ---------- */
+.maal-form { margin-top: 0 !important; margin-bottom: 14px; }
+.maal-form.retter { border-style: solid; border-color: var(--blaa); }
+.maal-form .besked { margin-bottom: 8px; }
+.maal-form-knapper { display: flex; gap: 8px; flex-wrap: wrap; }
+.maal-spiller { color: var(--tekst); }
+.maal-tom { padding: 10px 0; }
+
+.maal-kort {
+  background: var(--panel-lys);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  border-left: 4px solid var(--kant);
+}
+.maal-kort.naaet { border-left-color: var(--ok); }
+.maal-top { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.maal-titel { flex: 1; min-width: 0; }
+.maal-titel small { display: block; color: var(--tekst-svag); font-size: 0.75rem; }
+.maal-knapper { display: flex; gap: 2px; flex-shrink: 0; }
+.naaet-maerke {
+  flex-shrink: 0;
+  background: rgba(34, 197, 94, 0.18);
+  color: #86efac;
+  border-radius: 999px;
+  padding: 2px 10px;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+/* Selve bjælken: en grå "skinne" med en blå fyldning (grøn når målet er nået) */
+.maal-bjaelke {
+  height: 10px;
+  background: var(--baggrund);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.maal-fyld {
+  height: 100%;
+  background: var(--blaa);
+  border-radius: 999px;
+  transition: width 0.4s;
+}
+.maal-kort.naaet .maal-fyld { background: var(--ok); }
+.maal-status { display: block; margin-top: 4px; color: var(--tekst-svag); font-size: 0.75rem; }
+
+/* Personlige mål i spillerens Historik-fane */
+.historik-maal { margin-top: 4px; }
+
+/* ---------- iPad og telefon ---------- */
+@media (max-width: 1000px) {
+  .side-statistik { grid-template-columns: 1fr; padding: 12px; gap: 12px; overflow-y: visible; }
+  .resultat-gitter { grid-template-columns: repeat(3, 1fr); }
+}
+
+/* Kortene skal vokse med indholdet, så hele SIDEN scroller (ikke hvert kort for sig).
+   overflow-x: clip (i stedet for hidden) slår ikke lodret scroll til i kortet. */
+.side-statistik .stat-kort { overflow: visible; overflow-x: clip; min-height: auto; }

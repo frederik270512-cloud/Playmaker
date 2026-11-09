@@ -1612,3 +1612,14 @@
 .system-maerke.forsvar { background: #3b2f12; color: #fde68a; border-color: #a16207; }
 /* I titlen på et åbent system står mærket lidt fra navnet */
 h2 .system-maerke { margin-left: 10px; vertical-align: middle; }
+/* ---------- Toppen med mange faner ----------
+   Fanerne må krympe og kan scrolles sidelæns, så "Gem fil"/"Hent fil" altid kan ses,
+   og siden aldrig får en vandret scrollbar. */
+.header-venstre { min-width: 0; flex: 1 1 auto; }
+.faner { min-width: 0; overflow-x: auto; scrollbar-width: none; }
+.faner::-webkit-scrollbar { display: none; }
+.data-knapper { flex-shrink: 0; }
+@media (max-width: 1300px) {
+  .fane { padding: 8px 12px; }
+  header h1 { font-size: 1.1rem; }
+}

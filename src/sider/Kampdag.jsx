@@ -406,6 +406,16 @@ export default function Kampdag() {
         }
         spiller.kampe.push(kamp);
       }
+      // Holdets resultat (vises under 📊 Statistik → Holdets resultater).
+      // Dato og modstander skrives ens med spillernes kampe, så Statistik kan se, at det er samme kamp.
+      if (!Array.isArray(d.kampResultater)) d.kampResultater = [];
+      d.kampResultater.push({
+        id: tidNu,
+        dato: k.dato || idagISO(),
+        modstander: k.modstander.trim() || navn,
+        hjemme: k.hjemme,
+        ude: k.ude,
+      });
       d.kampdag = nyKampdag();
     });
     await spoerg("Kampen er gemt ✓",

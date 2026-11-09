@@ -1,6 +1,7 @@
 /*
   HISTORIK – fanen "📊 Historik" for en spiller:
-    tal-felter (kampe, mål ...), "Bedst imod", listen over kampe,
+    tal-felter (kampe, mål ...), personlige mål (kun visning – de sættes under 📊 Statistik),
+    "Bedst imod", listen over kampe,
     formularen til at tilføje en kamp og evalueringen (god til / ikke så god til / øve sig på).
 
   Props:
@@ -12,6 +13,8 @@ import { useDialog } from "../../komponenter/Dialog.jsx";
 import { idagISO, formatDato, decimal, sumAf, nytId, formatUr } from "../../hjaelpere.js";
 import { MaalGitter } from "../kampdag/MaalGitter.jsx";
 import { harSkudData, laegSkudKortSammen } from "../kampdag/maalHjoerner.js";
+import { MAAL_TYPER } from "../statistik/beregning.js";
+import MaalBjaelke from "../statistik/MaalBjaelke.jsx";
 
 // Et af tal-felterne øverst. klasse = "god" (grøn) eller "daarlig" (rød)
 function StatFelt({ navn, tal, underTekst, klasse = "" }) {
@@ -123,6 +126,10 @@ export default function Historik({ spiller }) {
   // Alle kampenes skudkort lagt sammen til ét
   const samletSkudKort = kampe.reduce((kort, k) => laegSkudKortSammen(kort, k.skudKort), {});
 
+  // Spillerens personlige mål (kun dem med en kendt type – se MAAL_TYPER i statistik/beregning.js)
+  const mineMaal = (Array.isArray(data.personligeMaal) ? data.personligeMaal : [])
+    .filter(m => m.spillerId === spiller.id && MAAL_TYPER[m.type]);
+
   // Forslag til modstander-feltet: alle holdnavne der er skrevet før (Set fjerner dubletter)
   const holdnavne = [...new Set(data.spillere.flatMap(s => s.kampe.map(k => k.modstander)))];
 
@@ -221,6 +228,16 @@ export default function Historik({ spiller }) {
           </>
         )}
       </div>
+
+      {/* Personlige mål (sættes under 📊 Statistik – her kan de kun ses) */}
+      <h3>🎯 Personlige mål</h3>
+      {mineMaal.length === 0 ? (
+        <p className="tom-tekst">Ingen mål endnu. Sæt mål under 📊 Statistik → Personlige mål.</p>
+      ) : (
+        <div className="historik-maal">
+          {mineMaal.map((m, i) => <MaalBjaelke key={m.id ?? i} maal={m} spiller={spiller} />)}
+        </div>
+      )}
 
       {harSkudData(samletSkudKort) && (
         <>

@@ -1,0 +1,249 @@
+/*
+  KAMPPLAN – styles til Kampplan-siden (importeres i Kampplan.jsx).
+  Alle klasser starter med "kp-", så de ikke kommer i karambolage med resten af appen.
+
+  Selve planen ("arket") er hvid med mørk tekst allerede på skærmen –
+  så ligner den det, man får ud af printeren.
+*/
+
+/* ---------- Sidens opbygning: listen til venstre, resten til højre ---------- */
+.side-kampplan {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr);
+  gap: 20px;
+  padding: 20px;
+  min-height: 0;
+}
+
+/* Højre del: redigering og arket. Den scroller selv (ligesom panelerne på de andre sider). */
+.kp-hoejre {
+  min-height: 0;
+  min-width: 0;
+  overflow-y: auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 20px;
+  align-content: start;
+}
+.kp-hoejre .kort { overflow-y: visible; }
+
+/* På brede skærme: redigering og ark ved siden af hinanden */
+@media screen and (min-width: 1400px) {
+  .kp-hoejre { grid-template-columns: minmax(320px, 400px) minmax(0, 1fr); align-items: start; }
+}
+
+/* ---------- Redigering ---------- */
+.kp-editor-top { display: flex; align-items: center; gap: 12px; margin-bottom: 4px; }
+.kp-editor-top h2 { flex: 1; }
+.kp-editor-felter { display: flex; flex-direction: column; gap: 12px; margin-top: 12px; }
+.kp-editor-felter h3 {
+  margin: 14px 0 0;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--tekst-svag);
+}
+.kp-opstilling-knapper { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.kp-select {
+  flex: 1;
+  min-width: 150px;
+  background: var(--baggrund);
+  border: 1px solid var(--kant);
+  color: var(--tekst);
+  padding: 5px 8px;
+  border-radius: 8px;
+  font: inherit;
+  font-size: 0.85rem;
+}
+.kp-advarsel { margin: 0; font-size: 0.85rem; color: var(--advarsel); }
+.kp-link-knap {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--blaa);
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* Systemerne man kan sætte flueben ved – små kort med en tegning */
+.kp-system-valg { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 8px; }
+.kp-system-valg-punkt {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: var(--panel-lys);
+  border: 2px solid transparent;
+  border-radius: 8px;
+  padding: 6px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.kp-system-valg-punkt:hover { border-color: var(--kant); }
+.kp-system-valg-punkt.valgt { border-color: var(--blaa); background: #2c3e5c; }
+.kp-system-valg-punkt input { position: absolute; top: 8px; left: 8px; width: 18px; height: 18px; margin: 0; }
+.kp-system-valg-bane svg { display: block; width: 100%; height: auto; aspect-ratio: 230 / 200; background: #1d4e89; border-radius: 4px; }
+
+/* ---------- Arket (selve planen) ---------- */
+.kp-ark-ramme { min-width: 0; }
+.kp-ark-knapper { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+
+.kp-ark {
+  background: white;
+  color: #1e1e1e;
+  border-radius: 6px;
+  padding: 28px 32px;
+  max-width: 820px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  line-height: 1.45;
+  font-size: 0.92rem;
+}
+.kp-ark-top { border-bottom: 3px solid #1e1e1e; padding-bottom: 10px; margin-bottom: 6px; }
+.kp-ark-top h1 { margin: 0; font-size: 1.6rem; }
+.kp-ark-meta { display: flex; flex-wrap: wrap; gap: 6px 20px; margin-top: 4px; font-weight: 600; color: #374151; }
+
+.kp-afsnit { padding: 12px 0; border-bottom: 1px solid #d1d5db; }
+.kp-afsnit:last-child { border-bottom: none; }
+.kp-afsnit h2 { margin: 0 0 8px; font-size: 1.1rem; }
+.kp-afsnit h3 {
+  margin: 10px 0 4px;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #4b5563;
+}
+.kp-to-kolonner { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.kp-to-kolonner h3 { margin-top: 0; }
+.kp-tekst { margin: 0; white-space: pre-wrap; }      /* pre-wrap: linjeskift i teksten bliver vist */
+.kp-tom { margin: 0; color: #6b7280; font-style: italic; }
+.kp-linje { margin: 10px 0 0; }
+.kp-svag { color: #6b7280; }
+.kp-kilde { margin: 8px 0 0; font-size: 0.78rem; color: #6b7280; }
+
+/* Nøglespillere – to pr. række */
+.kp-noegle-liste { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 16px; }
+.kp-noegle { display: flex; align-items: flex-start; gap: 8px; break-inside: avoid; }
+.kp-noegle-figur { width: 28px; height: 30px; flex-shrink: 0; }
+.kp-noegle-figur svg { width: 28px; height: 30px; display: block; }
+.kp-noegle-note { color: #4b5563; font-size: 0.82rem; }
+.kp-ark .rolle-chip { font-size: 0.7rem; padding: 1px 6px; }
+
+/* Startopstilling: banen til venstre, listerne til højre */
+.kp-opstilling { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start; }
+.kp-bane {
+  position: relative;            /* så spillerne kan placeres oven på banen */
+  width: 300px;
+  max-width: 100%;
+  flex-shrink: 0;
+}
+.kp-bane svg.bane-svg { display: block; width: 100%; height: auto; aspect-ratio: 230 / 252; border-radius: 4px; }
+.kp-brik {
+  position: absolute;
+  transform: translate(-50%, -50%);   /* midten af brikken på punktet */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: none;
+}
+.kp-brik-figur, .kp-brik-figur svg { width: 30px; height: 32px; display: block; }
+.kp-brik-navn {
+  margin-top: -2px;
+  background: rgba(15, 23, 42, 0.85);
+  color: white;
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 0 5px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.kp-hold-lister { flex: 1; min-width: 200px; }
+.kp-hold-lister h3:first-child { margin-top: 0; }
+.kp-spiller-liste { list-style: none; margin: 0; padding: 0; columns: 2; column-gap: 16px; }
+.kp-spiller-liste li { padding: 2px 0; break-inside: avoid; }
+.kp-plads {
+  display: inline-block;
+  min-width: 28px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: #4b5563;
+}
+.kp-skadet { color: #b91c1c; }
+
+/* Systemer: små tegninger med navn og beskrivelse */
+.kp-systemer { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+.kp-system { display: flex; gap: 10px; align-items: flex-start; break-inside: avoid; }
+.kp-system-bane { width: 110px; flex-shrink: 0; }
+.kp-system-bane svg { display: block; width: 110px; height: 95.65px; background: #1d4e89; border-radius: 4px; }
+.kp-system-tekst { min-width: 0; }
+.kp-system-tekst b { display: block; }
+.kp-system-type { font-size: 0.72rem; color: #4b5563; }
+.kp-system-tekst p { margin: 4px 0 0; font-size: 0.82rem; white-space: pre-wrap; }
+
+/* ---------- iPad og telefon ---------- */
+@media screen and (max-width: 1000px) {
+  .side-kampplan { grid-template-columns: minmax(0, 1fr); padding: 12px; gap: 12px; }
+  .side-kampplan > * { min-width: 0; }
+  .kp-hoejre { overflow-y: visible; gap: 12px; }
+}
+@media screen and (max-width: 600px) {
+  .kp-ark { padding: 18px 14px; }
+  .kp-ark-top h1 { font-size: 1.3rem; }
+  .kp-to-kolonner, .kp-noegle-liste { grid-template-columns: 1fr; }
+  .kp-bane { width: 100%; }
+  .kp-spiller-liste { columns: 1; }
+  .kp-editor-top { flex-wrap: wrap; }
+}
+
+/* =========================================================
+   PRINT – kun arket kommer med, sort på hvidt, på A4.
+   Reglerne gælder kun, når Kampplan-siden er den viste side
+   (":has(.side-kampplan)" = "body, der indeholder Kampplan-siden").
+   ========================================================= */
+@media print {
+  @page { size: A4; margin: 12mm; }
+
+  body:has(.side-kampplan) {
+    background: white;
+    color: #1e1e1e;
+    height: auto;
+    display: block;
+  }
+  /* Skjul appens top (titel, faner, gem-knapper) */
+  body:has(.side-kampplan) header { display: none; }
+
+  .side-kampplan { display: block; padding: 0; }
+  .side-kampplan .kp-liste,
+  .side-kampplan .kp-editor,
+  .side-kampplan .kp-ark-knapper { display: none; }
+  .side-kampplan .kp-hoejre { display: block; overflow: visible; }
+
+  .kp-ark {
+    max-width: none;
+    padding: 0;
+    box-shadow: none;
+    border-radius: 0;
+    font-size: 10.5pt;
+  }
+  /* Få baner, trøjer og navneskilte med i farver (browsere dropper ellers baggrunde) */
+  .kp-ark, .kp-ark * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+  /* Undgå at et afsnit eller et system bliver delt over to sider */
+  .kp-afsnit, .kp-system, .kp-noegle, .kp-opstilling { break-inside: avoid; }
+  .kp-afsnit h2 { break-after: avoid; }
+
+  /* Faste størrelser, så SVG'erne altid har en størrelse på papiret */
+  .kp-bane { width: 70mm; }
+  .kp-bane svg.bane-svg { width: 70mm; height: 76.7mm; }
+  .kp-systemer { grid-template-columns: 1fr 1fr; }
+  .kp-system-bane { width: 40mm; }
+  .kp-system-bane svg { width: 40mm; height: 34.8mm; }
+}
+
+/* Kortene i højre side skal vokse med indholdet (ellers bliver "Rediger" klemt sammen).
+   overflow-x: clip slår ikke lodret scroll til i kortet, som overflow-x: hidden gør. */
+.kp-hoejre .kort { overflow: visible; overflow-x: clip; min-height: auto; }
+.kp-hoejre { align-content: start; }

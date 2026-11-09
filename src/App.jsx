@@ -44,6 +44,8 @@ export default function App() {
   // Husk siden i adressen, så en genindlæsning bliver på samme side
   useEffect(() => {
     if (window.location.hash !== "#" + side) window.location.hash = side;
+    // Kan fanerne ikke være der alle sammen, rulles den aktive fane frem, så den kan ses
+    document.querySelector(".fane.aktiv")?.scrollIntoView({ block: "nearest", inline: "nearest" });
   }, [side]);
 
   // Ændres adressen (fx med browserens frem/tilbage-knapper), skifter vi side
