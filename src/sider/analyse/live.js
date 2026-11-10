@@ -3,8 +3,8 @@
 
   Appen ved ikke præcis, hvor spillerne står. Derfor GÆTTER vi ud fra deres position:
   får Rasmus (venstre back) en teknisk fejl, går vi ud fra, at den skete i venstre back-området.
-  Hver hændelse lægger en "varme-klat" i spillerens område. Spillere på banen lægger
-  også lidt varme på deres plads hele tiden, så man kan se, hvor holdet er.
+  Hver hændelse lægger en "varme-klat" i spillerens område. Heatmappet viser altså,
+  hvor BOLDEN mest er, mens vi har den.
 
   Forslagene kigger på:
     - om spillet ligger mest i den ene side       → "få bolden over i den anden side"
@@ -77,17 +77,8 @@ export function bygLiveHeatmap(kampdag, spillere) {
   const gitter = Array.from({ length: ANTAL }, () => new Array(ANTAL).fill(0));
   let antal = 0;
 
-  // 1) Spillerne på banen (eller med i kampen) står på deres plads – lidt varme hele tiden
-  const paaBanen = kampdag?.paaBanen ?? {};
-  const brugPaaBanen = Object.keys(paaBanen).length > 0;
-  for (const s of spillere) {
-    const p = pladsAf(s);
-    if (!p) continue;
-    const med = brugPaaBanen ? paaBanen[s.id]?.fra != null : (kampdag?.med ?? {})[s.id] !== false;   // ikke valgt fra = med
-    if (med) klat(gitter, PLADS_PUNKT[p], 0.6, 18);
-  }
-
-  // 2) Hver hændelse giver en klat i spillerens område (80 % primær, 20 % sekundær position)
+  // Kun hændelser hvor VI har bolden (mål, afbrænder, assist, teknisk fejl): bolden er hos spilleren.
+  // Hver hændelse giver en klat i spillerens område (80 % primær, 20 % sekundær position)
   for (const h of kampdag?.haendelser ?? []) {
     const v = HAENDELSE_VAEGT[h.type];
     if (!v) continue;

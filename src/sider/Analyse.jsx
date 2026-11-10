@@ -130,7 +130,7 @@ export default function Analyse() {
             <h2>🔥 Heatmap</h2>
             <p className="opsummering">
               {kilde === "live"
-                ? `Simuleret: hvor vores spillere er i kampen${data.kampdag?.modstander ? " mod " + data.kampdag.modstander : ""} – ud fra deres positioner.`
+                ? `Simuleret: hvor bolden mest er, når vi har den i kampen${data.kampdag?.modstander ? " mod " + data.kampdag.modstander : ""} – ud fra spillernes positioner.`
                 : `${TYPER[type].tekst} – ud fra ${valgteSystemer.length} angrebssystem${valgteSystemer.length === 1 ? "" : "er"}.`}
             </p>
           </div>
@@ -144,7 +144,7 @@ export default function Analyse() {
             <VarmeBane resultat={live}
               tomTekst="Ingen hændelser endnu – registrér mål, fejl osv. på ⏱️ Kampdag"
               taelleTekst={`${live.antal} hændelser talt med`}
-              note="Appen ved ikke præcis, hvor spillerne står. Hver hændelse (mål, afbrænder, assist, teknisk fejl) lægges i spillerens positions-område – 80 % på hans position og 20 % på hans sekundære. Spillere på banen giver lidt varme på deres plads." />
+              note="Appen ved ikke præcis, hvor bolden er. Hver hændelse (mål, afbrænder, assist, teknisk fejl) lægges i spillerens positions-område – 80 % på hans position og 20 % på hans sekundære. Så viser kortet, hvor bolden mest er, mens vi har den." />
             <h4>💡 Live-forslag</h4>
             <LiveForslag kampdag={data.kampdag} />
             {!liveModstander && data.kampdag?.modstander && (
