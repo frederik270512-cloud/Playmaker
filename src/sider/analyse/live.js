@@ -35,7 +35,7 @@ const HAENDELSE_VAEGT = {
 };
 
 // Læg en blød "klat" (gauss-formet) omkring punktet p
-function klat(gitter, p, vaegt, spredning = 18) {
+function klat(gitter, p, vaegt, spredning = 9) {     // lille spredning = mere præcis plet
   const r = Math.ceil((spredning * 2) / CELLE);
   const cr = Math.floor(p.y / CELLE), ck = Math.floor(p.x / CELLE);
   for (let i = cr - r; i <= cr + r; i++) {

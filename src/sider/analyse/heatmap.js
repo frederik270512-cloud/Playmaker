@@ -14,8 +14,8 @@ import { angribereI, erForsvarssystem } from "../../systemRoller.js";
 import { boldPunkt, erSkud, sammeBold } from "../../animation.js";
 import { harForgrening, effektivtSystem } from "../../systemVarianter.js";
 
-export const CELLE = 10;                       // 1 m × 1 m
-export const ANTAL = 200 / CELLE;              // 20 × 20 felter
+export const CELLE = 5;                        // ½ m × ½ m (små felter = mere præcist kort)
+export const ANTAL = 200 / CELLE;              // 40 × 40 felter
 
 // De tre slags heatmap man kan vælge imellem
 export const TYPER = {

@@ -38,13 +38,13 @@ function VarmeBane({ resultat, tomTekst, taelleTekst, note }) {
           <defs>
             {/* Sløring, så felterne flyder sammen til "varme-skyer" */}
             <filter id="varme-slør" x="-20%" y="-20%" width="140%" height="140%">
-              <feGaussianBlur stdDeviation="5" />
+              <feGaussianBlur stdDeviation="2.5" />
             </filter>
             <clipPath id="varme-klip"><rect x="0" y="0" width="200" height="200" /></clipPath>
           </defs>
           <g filter="url(#varme-slør)" clipPath="url(#varme-klip)">
             {max > 0 && gitter.flatMap((raekke, r) => raekke.map((v, k) => v > max * 0.03 && (
-              <rect key={`${r}-${k}`} x={k * CELLE - 2} y={r * CELLE - 2} width={CELLE + 4} height={CELLE + 4}
+              <rect key={`${r}-${k}`} x={k * CELLE - 1} y={r * CELLE - 1} width={CELLE + 2} height={CELLE + 2}
                     fill={varmeFarve(Math.pow(v / max, 0.45))} />
             )))}
           </g>
@@ -174,7 +174,7 @@ export default function Analyse() {
             <VarmeBane resultat={systemResultat}
               tomTekst={`Ingen ${TYPER[type].navn.slice(2).toLowerCase()} i de valgte systemer`}
               taelleTekst={`${systemResultat.antal} ${type === "loeb" ? "løb" : type === "afl" ? "afleveringer" : "skud"} talt med`}
-              note={`Grundlag: ${ANTAL}×${ANTAL} felter á 1×1 m. Systemer med varianter tæller alle varianter (vægtet ligeligt).`} />
+              note={`Grundlag: ${ANTAL}×${ANTAL} felter á ½×½ m. Systemer med varianter tæller alle varianter (vægtet ligeligt).`} />
           </>
         )}
       </section>
