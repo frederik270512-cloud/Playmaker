@@ -16,6 +16,7 @@ import Oversigt from "./sider/Oversigt.jsx";
 import Kampdag from "./sider/Kampdag.jsx";
 import Statistik from "./sider/Statistik.jsx";
 import Kampplan from "./sider/Kampplan.jsx";
+import Analyse from "./sider/Analyse.jsx";
 
 // Fanerne: navn i adressen (#tavle), tekst på knappen og hvilken komponent der vises
 const SIDER = [
@@ -26,6 +27,7 @@ const SIDER = [
   { id: "kampplan", tekst: "📋 Kampplan", Komponent: Kampplan },
   { id: "kampdag",  tekst: "⏱️ Kampdag",  Komponent: Kampdag },
   { id: "statistik", tekst: "📊 Statistik", Komponent: Statistik },
+  { id: "analyse",  tekst: "🔥 Analyse",  Komponent: Analyse },
 ];
 
 // Start på den side der står i adressen (fx #tavle) – ellers Spillere
