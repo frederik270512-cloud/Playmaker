@@ -13,6 +13,8 @@ import { useNavigation } from "../Navigation.jsx";
 import BaneSVG from "../komponenter/BaneSVG.jsx";
 import { bygHeatmap, angrebssystemer, TYPER, CELLE, ANTAL } from "./analyse/heatmap.js";
 import { rangerSystemer, forbedringer, FORSVARS_VIDEN } from "./analyse/forslag.js";
+import { bygLiveHeatmap, findModstander } from "./analyse/live.js";
+import LiveForslag from "./analyse/LiveForslag.jsx";
 import "./Analyse.css";
 
 /*
@@ -21,11 +23,12 @@ import "./Analyse.css";
 */
 function varmeFarve(v) {
   const hue = 220 - 220 * v;                  // 220 = blå, 0 = rød
-  return `hsla(${hue}, 100%, 55%, ${0.35 + 0.6 * v})`;
+  return `hsla(${hue}, 100%, 55%, ${0.15 + 0.75 * v})`;
 }
 
-function Heatmap({ systemer, type }) {
-  const { gitter, max, antal } = useMemo(() => bygHeatmap(systemer, type), [systemer, type]);
+// Banen med varmen ovenpå. resultat = { gitter, max } fra bygHeatmap eller bygLiveHeatmap
+function VarmeBane({ resultat, tomTekst, taelleTekst, note }) {
+  const { gitter, max } = resultat;
   return (
     <>
       <div className="analyse-bane">
@@ -39,20 +42,20 @@ function Heatmap({ systemer, type }) {
             <clipPath id="varme-klip"><rect x="0" y="0" width="200" height="200" /></clipPath>
           </defs>
           <g filter="url(#varme-slør)" clipPath="url(#varme-klip)">
-            {max > 0 && gitter.flatMap((raekke, r) => raekke.map((v, k) => v > 0 && (
+            {max > 0 && gitter.flatMap((raekke, r) => raekke.map((v, k) => v > max * 0.06 && (
               <rect key={`${r}-${k}`} x={k * CELLE - 2} y={r * CELLE - 2} width={CELLE + 4} height={CELLE + 4}
                     fill={varmeFarve(Math.sqrt(v / max))} />
             )))}
           </g>
         </svg>
-        {max === 0 && <div className="analyse-tom">Ingen {TYPER[type].navn.slice(2).toLowerCase()} i de valgte systemer</div>}
+        {max === 0 && <div className="analyse-tom">{tomTekst}</div>}
       </div>
       <div className="varme-skala">
         <span>Lidt</span><div className="varme-gradient" /><span>Meget</span>
-        <small>{antal} {type === "loeb" ? "løb" : type === "afl" ? "afleveringer" : "skud"} talt med</small>
+        <small>{taelleTekst}</small>
       </div>
       <p className="opsummering" style={{ marginTop: 6 }}>
-        Grundlag: {ANTAL}×{ANTAL} felter á 1×1 m. Systemer med varianter tæller alle varianter (vægtet ligeligt).
+        {note}
       </p>
     </>
   );
@@ -64,12 +67,21 @@ export default function Analyse() {
   const alleSystemer = useMemo(() => angrebssystemer(data.systemer), [data.systemer]);
 
   // Valg øverst
-  const [modstanderId, setModstanderId] = useState("");
+  // Start med modstanderen fra Kampdag, hvis han findes på Oversigt
+  const [modstanderId, setModstanderId] = useState(() => {
+    const m = findModstander(data, data.kampdag?.modstander);
+    return m ? String(m.id) : "";
+  });
   const modstander = data.modstandere.find(h => String(h.id) === modstanderId) || null;
   const [egetForsvar, setEgetForsvar] = useState("6-0");
   // Har modstanderen et kendt forsvar, bruges det – ellers det man selv vælger
   const forsvar = modstander?.forsvar || egetForsvar;
 
+  // Kilde: "live" = den kamp der er i gang på Kampdag (simuleret ud fra positionerne), "systemer" = jeres systemer
+  const harLive = (data.kampdag?.haendelser ?? []).some(h => h.type !== "info");
+  const [kilde, setKilde] = useState(harLive ? "live" : "systemer");
+  const live = useMemo(() => bygLiveHeatmap(data.kampdag, data.spillere), [data.kampdag, data.spillere]);
+  const liveModstander = findModstander(data, data.kampdag?.modstander);
   const [type, setType] = useState("loeb");
   const [kunMod, setKunMod] = useState(false);       // kun systemer lavet mod forsvaret?
   const [systemId, setSystemId] = useState("alle");
@@ -80,6 +92,7 @@ export default function Analyse() {
     return liste;
   }, [alleSystemer, kunMod, forsvar, systemId]);
 
+  const systemResultat = useMemo(() => bygHeatmap(valgteSystemer, type), [valgteSystemer, type]);
   const rangering = useMemo(() => rangerSystemer(data.systemer, forsvar), [data.systemer, forsvar]);
   const raad = useMemo(() => forbedringer(data, forsvar, modstander), [data, forsvar, modstander]);
   const viden = FORSVARS_VIDEN[forsvar];
@@ -115,27 +128,54 @@ export default function Analyse() {
         <div className="liste-top">
           <div>
             <h2>🔥 Heatmap</h2>
-            <p className="opsummering">{TYPER[type].tekst} – ud fra {valgteSystemer.length} angrebssystem{valgteSystemer.length === 1 ? "" : "er"}.</p>
+            <p className="opsummering">
+              {kilde === "live"
+                ? `Simuleret: hvor vores spillere er i kampen${data.kampdag?.modstander ? " mod " + data.kampdag.modstander : ""} – ud fra deres positioner.`
+                : `${TYPER[type].tekst} – ud fra ${valgteSystemer.length} angrebssystem${valgteSystemer.length === 1 ? "" : "er"}.`}
+            </p>
           </div>
         </div>
         <div className="analyse-knapper">
-          {Object.entries(TYPER).map(([id, t]) => (
-            <button key={id} className={"knap knap-lille" + (type === id ? " knap-primaer" : "")} onClick={() => setType(id)}>
-              {t.navn}
-            </button>
-          ))}
+          <button className={"knap knap-lille" + (kilde === "live" ? " knap-primaer" : "")} onClick={() => setKilde("live")}>⏱️ Live kamp</button>
+          <button className={"knap knap-lille" + (kilde === "systemer" ? " knap-primaer" : "")} onClick={() => setKilde("systemer")}>🧩 Systemer</button>
         </div>
-        <div className="analyse-filter">
-          <select value={systemId} onChange={e => setSystemId(e.target.value)}>
-            <option value="alle">Alle systemer</option>
-            {alleSystemer.map(s => <option key={s.id} value={String(s.id)}>{s.navn}</option>)}
-          </select>
-          <label className="analyse-tjek">
-            <input type="checkbox" checked={kunMod} onChange={e => setKunMod(e.target.checked)} />
-            Kun systemer mod {forsvar}
-          </label>
-        </div>
-        <Heatmap systemer={valgteSystemer} type={type} />
+        {kilde === "live" ? (
+          <>
+            <VarmeBane resultat={live}
+              tomTekst="Ingen hændelser endnu – registrér mål, fejl osv. på ⏱️ Kampdag"
+              taelleTekst={`${live.antal} hændelser talt med`}
+              note="Appen ved ikke præcis, hvor spillerne står. Hver hændelse (mål, afbrænder, assist, teknisk fejl) lægges i spillerens positions-område – 80 % på hans position og 20 % på hans sekundære. Spillere på banen giver lidt varme på deres plads." />
+            <h4>💡 Live-forslag</h4>
+            <LiveForslag kampdag={data.kampdag} />
+            {!liveModstander && data.kampdag?.modstander && (
+              <p className="opsummering">Tip: opret „{data.kampdag.modstander}“ på Oversigt med samme navn, så bruges dine noter om dem i forslagene.</p>
+            )}
+          </>
+        ) : (
+          <>
+            <div className="analyse-knapper">
+              {Object.entries(TYPER).map(([id, t]) => (
+                <button key={id} className={"knap knap-lille" + (type === id ? " knap-primaer" : "")} onClick={() => setType(id)}>
+                  {t.navn}
+                </button>
+              ))}
+            </div>
+            <div className="analyse-filter">
+              <select value={systemId} onChange={e => setSystemId(e.target.value)}>
+                <option value="alle">Alle systemer</option>
+                {alleSystemer.map(s => <option key={s.id} value={String(s.id)}>{s.navn}</option>)}
+              </select>
+              <label className="analyse-tjek">
+                <input type="checkbox" checked={kunMod} onChange={e => setKunMod(e.target.checked)} />
+                Kun systemer mod {forsvar}
+              </label>
+            </div>
+            <VarmeBane resultat={systemResultat}
+              tomTekst={`Ingen ${TYPER[type].navn.slice(2).toLowerCase()} i de valgte systemer`}
+              taelleTekst={`${systemResultat.antal} ${type === "loeb" ? "løb" : type === "afl" ? "afleveringer" : "skud"} talt med`}
+              note={`Grundlag: ${ANTAL}×${ANTAL} felter á 1×1 m. Systemer med varianter tæller alle varianter (vægtet ligeligt).`} />
+          </>
+        )}
       </section>
 
       {/* ---------- Forslag ---------- */}

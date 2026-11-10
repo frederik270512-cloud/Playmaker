@@ -11,7 +11,8 @@
     Den lille boks der spørger "Hvor i målet?" efter et skud.
     Man kan altid trykke "Spring over" (eller Escape), så registreringen går hurtigt.
 */
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import { IMOD_PLADSER } from "../analyse/live.js";
 import { HJOERNE_NOEGLER, KOLONNER, RAEKKER, hjoerneNavn } from "./maalHjoerner.js";
 import "../Kampdag.css";
 
@@ -54,8 +55,13 @@ export function MaalGitter({ kort, imod = false }) {
   );
 }
 
-export function HjoerneVaelger({ titel, onVaelg, onSpringOver }) {
+/*
+  spoergSkytte = true (kun ved "Mål til dem"): vis også knapper til HVEM af dem der scorede
+  (deres position). Det bruges af live-forslagene til at foreslå en anden opdækning.
+*/
+export function HjoerneVaelger({ titel, onVaelg, onSpringOver, spoergSkytte = false }) {
   const dialogRef = useRef(null);
+  const [skytte, setSkytte] = useState(null);
 
   // Vis boksen som "modal" (oven på alt andet), så snart den er tegnet
   useEffect(() => {
@@ -68,22 +74,35 @@ export function HjoerneVaelger({ titel, onVaelg, onSpringOver }) {
     <dialog
       ref={dialogRef}
       className="dialog hjoerne-dialog"
-      onCancel={e => { e.preventDefault(); onSpringOver(); }}   // Escape = spring over
+      onCancel={e => { e.preventDefault(); onSpringOver(skytte); }}   // Escape = spring over
     >
       <h3>{titel}</h3>
+      {spoergSkytte && (
+        <>
+          <p className="hjoerne-hjaelp">Hvem scorede? (deres position)</p>
+          <div className="skytte-valg">
+            {IMOD_PLADSER.map(p => (
+              <button key={p} type="button" className={"knap knap-lille" + (skytte === p ? " knap-primaer" : "")}
+                      onClick={() => setSkytte(skytte === p ? null : p)}>
+                {p === "kontra" ? "Kontra" : p}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
       <p className="hjoerne-hjaelp">Hvor i målet? (set fra skytten)</p>
       <div className="hjoerne-valg">
         {RAEKKER.map(r => KOLONNER.map(k => {
           const noegle = `${r.id}-${k.id}`;
           return (
-            <button key={noegle} type="button" className="hjoerne-knap" onClick={() => onVaelg(noegle)}>
+            <button key={noegle} type="button" className="hjoerne-knap" onClick={() => onVaelg(noegle, skytte)}>
               {r.navn}<br /><small>{k.navn}</small>
             </button>
           );
         }))}
       </div>
       <div className="dialog-knapper">
-        <button type="button" className="knap" autoFocus onClick={onSpringOver}>Spring over</button>
+        <button type="button" className="knap" autoFocus onClick={() => onSpringOver(skytte)}>{skytte ? "Gem uden hjørne" : "Spring over"}</button>
       </div>
     </dialog>
   );

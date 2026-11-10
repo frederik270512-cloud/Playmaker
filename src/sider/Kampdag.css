@@ -114,3 +114,4 @@
   .kd-paa-banen { padding: 6px 10px; }
   .hjoerne-knap { padding: 14px 4px; }
 }
+.skytte-valg { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }

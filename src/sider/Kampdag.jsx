@@ -39,6 +39,8 @@ import { nyKampdag } from "../data/standardData.js";
 import { aktivSkade, formatUr, idagISO, nytId, sorteretTrup } from "../hjaelpere.js";
 import { HjoerneVaelger, MaalGitter } from "./kampdag/MaalGitter.jsx";
 import { HJOERNE_NOEGLER, harSkudData, hjoerneNavn } from "./kampdag/maalHjoerner.js";
+import LiveForslag from "./analyse/LiveForslag.jsx";
+import { IMOD_NAVN, imodFordeling } from "./analyse/live.js";
 import "./Kampdag.css";
 
 // Målmandens ekstra knap. Ligger her (ikke i konstanter.js), og lægges sammen med de andre knapper.
@@ -307,7 +309,7 @@ export default function Kampdag() {
       if (mv != null) haendelse.maalmandId = mv;
       tilfoejHaendelse(k, tidNu, haendelse);
     });
-    setHjoerneSpoerg({ haendelseId, titel: `⚽ Mål til ${kampdag.modstander || "modstanderen"}` });
+    setHjoerneSpoerg({ haendelseId, imod: true, titel: `⚽ Mål til ${kampdag.modstander || "modstanderen"}` });
   }
 
   // "🧤 I mål:"-vælgeren: skift målmand. Gælder kun hændelser, der kommer EFTER skiftet.
@@ -323,12 +325,16 @@ export default function Kampdag() {
   }
 
   // Svar fra "Hvor i målet?"-boksen: skriv hjørnet på hændelsen
-  function vaelgHjoerne(noegle) {
+  // skytte: deres position (kun ved "Mål til dem") – bruges af live-forslagene
+  function vaelgHjoerne(noegle, skytte = null) {
     const id = hjoerneSpoerg?.haendelseId;
     setHjoerneSpoerg(null);
+    if (!noegle && !skytte) return;
     opdater(d => {
       const h = d.kampdag.haendelser.find(x => x.id === id);
-      if (h) h.hjoerne = noegle;           // er hændelsen fortrudt imens, sker der ingenting
+      if (!h) return;                      // er hændelsen fortrudt imens, sker der ingenting
+      if (noegle) h.hjoerne = noegle;
+      if (skytte) h.skytte = skytte;
     });
   }
 
@@ -443,6 +449,8 @@ export default function Kampdag() {
         modstander: k.modstander.trim() || navn,
         hjemme: k.hjemme,
         ude: k.ude,
+        // Hvorfra scorede de? { VB: 3, ST: 2, ... } – kun hvis man har valgt det
+        imodPladser: imodFordeling(k.haendelser),
       });
       d.kampdag = nyKampdag();
     });
@@ -468,7 +476,7 @@ export default function Kampdag() {
     if (h.type === "info") return h.tekst;
     // Hvor i målet? (står kun på skud, hvor man har valgt et felt)
     const hjoerne = h.hjoerne ? ` → ${hjoerneNavn(h.hjoerne)}` : "";
-    if (h.type === "modmaal") return `⚽ Mål til ${kampdag.modstander || "modstanderen"}${hjoerne}`;
+    if (h.type === "modmaal") return `⚽ Mål til ${kampdag.modstander || "modstanderen"}${h.skytte ? ` (${IMOD_NAVN[h.skytte]})` : ""}${hjoerne}`;
     const spiller = findSpiller(h.spillerId);
     const handling = HANDLINGER[h.type];
     if (!handling) return "";
@@ -684,6 +692,9 @@ export default function Kampdag() {
             })}
           </div>
 
+          <h3>💡 Live-forslag</h3>
+          <LiveForslag kampdag={kampdag} kompakt />
+
           <h3>🎯 Skudkort</h3>
           <div className="skudkort-faner">
             <button type="button" className={skudVisning === "vores" ? "aktiv" : ""} onClick={() => setSkudVisning("vores")}>Vores skud</button>
@@ -725,7 +736,8 @@ export default function Kampdag() {
           key={hjoerneSpoerg.haendelseId}
           titel={hjoerneSpoerg.titel}
           onVaelg={vaelgHjoerne}
-          onSpringOver={() => setHjoerneSpoerg(null)}
+          spoergSkytte={hjoerneSpoerg.imod === true}
+          onSpringOver={skytte => vaelgHjoerne(null, skytte)}
         />
       )}
     </main>

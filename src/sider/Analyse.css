@@ -68,3 +68,5 @@
 @media (max-width: 1000px) {
   .side-analyse { grid-template-columns: minmax(0, 1fr); padding: 12px; gap: 14px; }
 }
+.live-flere { color: var(--tekst-svag); }
+.live-tom { text-align: left; margin: 0; }
