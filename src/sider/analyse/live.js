@@ -35,7 +35,7 @@ const HAENDELSE_VAEGT = {
 };
 
 // Læg en blød "klat" (gauss-formet) omkring punktet p
-function klat(gitter, p, vaegt, spredning = 14) {
+function klat(gitter, p, vaegt, spredning = 18) {
   const r = Math.ceil((spredning * 2) / CELLE);
   const cr = Math.floor(p.y / CELLE), ck = Math.floor(p.x / CELLE);
   for (let i = cr - r; i <= cr + r; i++) {
@@ -168,6 +168,7 @@ const OMDAEKNING = {
   LIVE-FORSLAG under kampen. Giver en liste: { ikon, titel, tekst, vigtig }.
 */
 export function liveForslag(kampdag, spillere, modstander) {
+  const haendelser = kampdag?.haendelser ?? [];
   const raad = [];
   const pr = haendelserPrPlads(kampdag, spillere);
   const sum = q => q.reduce((a, p) => a + pr[p].iAlt, 0);
@@ -178,29 +179,29 @@ export function liveForslag(kampdag, spillere, modstander) {
   const menHusk = side => (svageSider.includes(side)
     ? " Men husk: deres svage spiller står i den side, I er i nu – flyt forsvaret over og spil så hurtigt tilbage til ham." : "");
 
-  if (iAlt >= 5) {
+  if (iAlt >= 2) {
     // 1) Side-balance
     const venstre = sum(["VF", "VB"]), hoejre = sum(["HF", "HB"]);
     const sider = venstre + hoejre;
-    if (sider >= 4) {
+    if (sider >= 2) {
       const andelV = venstre / sider;
-      if (andelV >= 0.68) raad.push({ ikon: "➡️", vigtig: true, titel: `${Math.round(andelV * 100)} % af spillet er i venstre side`,
+      if (andelV >= 0.65) raad.push({ ikon: "➡️", vigtig: true, titel: `${Math.round(andelV * 100)} % af spillet er i venstre side`,
         tekst: "Forsvaret skubber over mod venstre. Få bolden hurtigt over i HØJRE side (HB/HF) – der er der mest plads." + menHusk("venstre") });
-      if (andelV <= 0.32) raad.push({ ikon: "⬅️", vigtig: true, titel: `${Math.round((1 - andelV) * 100)} % af spillet er i højre side`,
+      if (andelV <= 0.35) raad.push({ ikon: "⬅️", vigtig: true, titel: `${Math.round((1 - andelV) * 100)} % af spillet er i højre side`,
         tekst: "Forsvaret skubber over mod højre. Få bolden hurtigt over i VENSTRE side (VB/VF) – der er der mest plads." + menHusk("hoejre") });
     }
     // 2) Fløjene
     const floej = sum(["VF", "HF"]);
-    if (floej / iAlt < 0.15) raad.push({ ikon: "↔️", vigtig: true, titel: "Fløjene bliver næsten ikke brugt",
+    if (iAlt >= 3 && floej / iAlt < 0.2) raad.push({ ikon: "↔️", vigtig: true, titel: "Fløjene bliver næsten ikke brugt",
       tekst: `Kun ${Math.round(floej)} af ${Math.round(iAlt)} aktioner er på fløjene. Spil bolden bredt – lav en krydsning back–fløj, eller lad fløjen løbe ind som 2. streg.` });
     // 3) Mange fejl ét sted
     const fejlPlads = Object.keys(pr).sort((a, b) => pr[b].fejl - pr[a].fejl)[0];
-    if (pr[fejlPlads].fejl >= 3) raad.push({ ikon: "⚠️", titel: `Mange tekniske fejl på ${PLADS_NAVN[fejlPlads]}`,
+    if (pr[fejlPlads].fejl >= 2) raad.push({ ikon: "⚠️", titel: `Mange tekniske fejl på ${PLADS_NAVN[fejlPlads]}`,
       tekst: "Gør det enkelt der: kortere afleveringer, og lad en anden tage over, hvis det fortsætter." });
     // 4) Brænder meget ét sted
     for (const p of Object.keys(pr)) {
       const skud = pr[p].maal + pr[p].afb;
-      if (skud >= 4 && pr[p].afb / skud >= 0.6) raad.push({ ikon: "🎯", titel: `${PLADS_NAVN[p][0].toUpperCase() + PLADS_NAVN[p].slice(1)} brænder ${Math.round(pr[p].afb)} af ${Math.round(skud)}`,
+      if (skud >= 2 && pr[p].afb / skud >= 0.6) raad.push({ ikon: "🎯", titel: `${PLADS_NAVN[p][0].toUpperCase() + PLADS_NAVN[p].slice(1)} brænder ${Math.round(pr[p].afb)} af ${Math.round(skud)}`,
         tekst: "Find bedre chancer – spil videre i stedet for at tage det svære skud." });
     }
   }
@@ -219,10 +220,80 @@ export function liveForslag(kampdag, spillere, modstander) {
   // 6) Mål imod – hvorfra?
   const imod = imodFordeling(kampdag?.haendelser);
   const antalImod = Object.values(imod).reduce((a, b) => a + b, 0);
-  if (antalImod >= 3) {
+  if (antalImod >= 2) {
     const [top, n] = Object.entries(imod).sort((a, b) => b[1] - a[1])[0];
     if (n / antalImod >= 0.4) raad.push({ ikon: "🛡️", vigtig: true, titel: `${n} af ${antalImod} mål imod kommer fra ${IMOD_NAVN[top]}`,
       tekst: OMDAEKNING[top] });
+  }
+
+  // 7) Flere forslag ud fra kampen
+  const vores = h => spillere.find(x => x.id === h.spillerId);
+  const navn = s => (s ? `#${s.nummer} ${s.navn}` : "?");
+  const tael = type => {
+    const t = {};
+    for (const h of haendelser) if (h.type === type && h.spillerId != null) t[h.spillerId] = (t[h.spillerId] || 0) + 1;
+    return t;
+  };
+  const maal = tael("maal"), afb = tael("afb"), fejl = tael("fejl"), assist = tael("assist");
+
+  // Varm skytte: mindst 2 mål og højst 1 afbrænder → find ham igen
+  for (const id of Object.keys(maal)) {
+    const m = maal[id], a = afb[id] || 0;
+    if (m >= 2 && m / (m + a) >= 0.67) raad.push({ ikon: "🔥", titel: `${navn(vores({ spillerId: Number(id) }))} er varm: ${m} mål på ${m + a} skud`,
+      tekst: "Bliv ved med at finde ham – lav systemer, der ender hos ham, indtil forsvaret lukker ham." });
+  }
+  // Spiller med mange fejl (ved navn)
+  for (const id of Object.keys(fejl)) {
+    if (fejl[id] >= 2) raad.push({ ikon: "🔄", titel: `${navn(vores({ spillerId: Number(id) }))} har ${fejl[id]} tekniske fejl`,
+      tekst: "Overvej en kort pause på bænken, eller giv ham enklere opgaver (kort aflevering, ingen gennembrud)." });
+  }
+  // Playmaker: én spiller laver de fleste assists → forsvaret vil lukke ham
+  const assistIAlt = Object.values(assist).reduce((x, y) => x + y, 0);
+  for (const id of Object.keys(assist)) {
+    if (assist[id] >= 2 && assist[id] / assistIAlt >= 0.6) raad.push({ ikon: "🅰️", titel: `${navn(vores({ spillerId: Number(id) }))} står for ${assist[id]} af ${assistIAlt} assists`,
+      tekst: "Han styrer spillet godt – men forsvaret vil snart gå ud på ham. Hav en anden klar til at tage over som playmaker." });
+  }
+  // Center og streg: bliver de brugt?
+  if (iAlt >= 4 && pr.ST.iAlt === 0) raad.push({ ikon: "📍", titel: "Stregspilleren er ikke med i spillet",
+    tekst: "Ingen aktioner på stregen endnu. Spil ham ind – eller brug ham til spærringer, så backs får plads." });
+  if (iAlt >= 4 && pr.C.iAlt === 0) raad.push({ ikon: "🎼", titel: "Centeren er ikke med i aktionerne",
+    tekst: "Få centeren til at gå på mål en gang – så binder han midterforsvarerne og åbner for backs." });
+  // Ingen skud i lang tid? (mindst 5 minutters kamptid siden sidste afslutning)
+  const sidsteSkud = [...haendelser].reverse().find(h => h.type === "maal" || h.type === "afb");
+  const sidsteTid = haendelser.length ? haendelser[haendelser.length - 1].sek : 0;
+  if (sidsteSkud && sidsteTid - sidsteSkud.sek >= 300) raad.push({ ikon: "⏳", vigtig: true, titel: "Ingen afslutninger i over 5 minutter",
+    tekst: "Angrebet går i stå. Tag et af de systemer, I er sikre i, og afslut det helt." });
+
+  // Stillingen
+  const forskel = (Number(kampdag?.hjemme) || 0) - (Number(kampdag?.ude) || 0);
+  if (forskel <= -3) raad.push({ ikon: "📉", vigtig: true, titel: `I er bagud med ${-forskel}`,
+    tekst: "Sæt tempoet op: hurtig midte efter deres mål og kontra. Ved 4+ i de sidste minutter: prøv 7 mod 6." });
+  else if (forskel >= 3) raad.push({ ikon: "📈", titel: `I fører med ${forskel}`,
+    tekst: "Spil sikkert: lange angreb, kun gode chancer, og løb hjem med det samme for at undgå kontra." });
+
+  // Vores udvisninger lige nu
+  if ((kampdag?.udvisninger ?? []).length > 0) raad.push({ ikon: "⏱", vigtig: true, titel: "I er i undertal",
+    tekst: "Spil langt angreb og tag tiden ud – afslut først i en sikker chance. I forsvar: stå kompakt i 5-0 og giv dem skuddet fra distancen." });
+
+  // Mål imod: hvilket hjørne?
+  const hj = {};
+  for (const h of haendelser) if (h.type === "modmaal" && h.hjoerne) hj[h.hjoerne] = (hj[h.hjoerne] || 0) + 1;
+  const topHj = Object.entries(hj).sort((x, y) => y[1] - x[1])[0];
+  if (topHj && topHj[1] >= 2) raad.push({ ikon: "🧤", titel: `${topHj[1]} mål imod i samme felt (${topHj[0].replace("-", " ").replace("hoej", "høj").replace("hoejre", "højre")})`,
+    tekst: "Målmanden skal dække det felt bedre – og blokken skal lukke den side af, så skytten skal skyde den anden vej." });
+
+  // Deres forsvar (fra Oversigt) – det korte råd
+  const FORSVAR_KORT = {
+    "6-0": "De spiller 6-0: skyd fra 9 m med skærm, og brug krydsninger til at flytte forsvaret sidelæns.",
+    "5-1": "De spiller 5-1: spil bolden ind på stregen BAG den fremskudte, og lad en fløj løbe ind som 2. stregspiller.",
+    "3-2-1": "De spiller 3-2-1: lange afleveringer til fløjene, gå 1 mod 1, og brug to på stregen.",
+  };
+  if (modstander?.forsvar && FORSVAR_KORT[modstander.forsvar]) raad.push({ ikon: "🛡️", titel: `Mod deres ${modstander.forsvar}-forsvar`, tekst: FORSVAR_KORT[modstander.forsvar] });
+
+  // Deres gode spillere (nøglespillere fra Oversigt)
+  for (const n of (modstander?.noeglespillere ?? []).slice(0, 3)) {
+    raad.push({ ikon: "⭐", titel: `Pas på deres #${n.nummer} ${n.navn ?? ""}${n.position ? " (" + n.position + ")" : ""}`,
+      tekst: (n.note ? n.note + " – " : "") + "gå tæt på ham i forsvar og giv ham ikke tid med bolden." });
   }
 
   return raad.sort((a, b) => (b.vigtig ? 1 : 0) - (a.vigtig ? 1 : 0));

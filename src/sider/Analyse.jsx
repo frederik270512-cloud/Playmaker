@@ -21,9 +21,10 @@ import "./Analyse.css";
   Farven for et felt: 0 = gennemsigtig, 1 = varmest.
   Går fra blå → grøn → gul → rød (som et vejr-kort).
 */
+// Feltets styrke opløftes i 0,45 (se nedenfor), så selv lidt varme – fx 2 skud fra HB – får tydelig farve
 function varmeFarve(v) {
   const hue = 220 - 220 * v;                  // 220 = blå, 0 = rød
-  return `hsla(${hue}, 100%, 55%, ${0.15 + 0.75 * v})`;
+  return `hsla(${hue}, 100%, 55%, ${0.3 + 0.65 * v})`;
 }
 
 // Banen med varmen ovenpå. resultat = { gitter, max } fra bygHeatmap eller bygLiveHeatmap
@@ -42,9 +43,9 @@ function VarmeBane({ resultat, tomTekst, taelleTekst, note }) {
             <clipPath id="varme-klip"><rect x="0" y="0" width="200" height="200" /></clipPath>
           </defs>
           <g filter="url(#varme-slør)" clipPath="url(#varme-klip)">
-            {max > 0 && gitter.flatMap((raekke, r) => raekke.map((v, k) => v > max * 0.06 && (
+            {max > 0 && gitter.flatMap((raekke, r) => raekke.map((v, k) => v > max * 0.03 && (
               <rect key={`${r}-${k}`} x={k * CELLE - 2} y={r * CELLE - 2} width={CELLE + 4} height={CELLE + 4}
-                    fill={varmeFarve(Math.sqrt(v / max))} />
+                    fill={varmeFarve(Math.pow(v / max, 0.45))} />
             )))}
           </g>
         </svg>
