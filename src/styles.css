@@ -1623,3 +1623,6 @@ h2 .system-maerke { margin-left: 10px; vertical-align: middle; }
   .fane { padding: 8px 12px; }
   header h1 { font-size: 1.1rem; }
 }
+/* Logoet i toppen */
+.app-titel { display: flex; align-items: center; gap: 10px; }
+.app-logo { width: 34px; height: 34px; }

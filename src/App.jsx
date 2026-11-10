@@ -111,7 +111,11 @@ export default function App() {
     <NavigationKontekst.Provider value={{ saetForladVagt, skiftSide }}>
       <header>
         <div className="header-venstre">
-          <h1>🤾 Playmaker</h1>
+          <h1 className="app-titel">
+            {/* Logoet ligger i mappen public/, så det kan hentes direkte som "./logo.svg" */}
+            <img src="./logo.svg" alt="" className="app-logo" />
+            Playmaker
+          </h1>
           <nav className="faner">
             {SIDER.map(s => (
               <button
