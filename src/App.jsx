@@ -17,6 +17,7 @@ import Kampdag from "./sider/Kampdag.jsx";
 import Statistik from "./sider/Statistik.jsx";
 import Kampplan from "./sider/Kampplan.jsx";
 import Analyse from "./sider/Analyse.jsx";
+import SplashScreen from "./komponenter/SplashScreen.jsx";
 
 // Fanerne: navn i adressen (#tavle), tekst på knappen og hvilken komponent der vises
 const SIDER = [
@@ -111,6 +112,8 @@ export default function App() {
 
   return (
     <NavigationKontekst.Provider value={{ saetForladVagt, skiftSide }}>
+      {/* Forsiden med logo-animation – fader selv ud efter 3 sekunder */}
+      <SplashScreen />
       <header>
         <div className="header-venstre">
           <h1 className="app-titel">

@@ -1,0 +1,92 @@
+/* =========================================================
+   SPLASH SCREEN – mørkeblå forside med logo-animation
+   ========================================================= */
+.splash {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;                      /* ovenpå alt, også dialoger */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at 50% 40%, #1C2541 0%, #0B132B 70%);
+  color: #fff;
+  opacity: 1;
+  transition: opacity 0.6s ease;      /* skal passe med UDTONING i SplashScreen.jsx */
+}
+.splash-ud { opacity: 0; pointer-events: none; }
+
+/* Logo + tekst: fade ind og zoom let op */
+.splash-indhold {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 0 16px;
+  animation: splash-ind 1s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+@keyframes splash-ind {
+  from { opacity: 0; transform: scale(0.85); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+/* Håndbolden */
+.splash-logo { position: relative; width: 110px; height: 110px; margin-bottom: 22px; }
+.splash-bold {
+  position: relative;
+  width: 100%; height: 100%;
+  filter: drop-shadow(0 6px 18px rgba(249, 115, 22, 0.35));
+  animation: splash-rotation 3s linear infinite;
+}
+@keyframes splash-rotation { to { transform: rotate(360deg); } }
+
+/* Orange ring der pulserer ud bag bolden */
+.splash-puls {
+  position: absolute; inset: 0;
+  border-radius: 50%;
+  border: 3px solid #f97316;
+  animation: splash-puls 1.5s ease-out infinite;
+}
+@keyframes splash-puls {
+  from { transform: scale(1);   opacity: 0.8; }
+  to   { transform: scale(1.7); opacity: 0; }
+}
+
+.splash-titel {
+  margin: 0;
+  font-size: clamp(2.2rem, 8vw, 3.4rem);
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+.splash-titel span { color: #f97316; }
+.splash-undertitel {
+  margin: 8px 0 0;
+  color: #facc15;
+  font-size: 0.95rem;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  opacity: 0;
+  animation: splash-ind 1s 0.4s ease both;   /* kommer lidt efter titlen */
+}
+
+/* Progress-bar i bunden */
+.splash-loader {
+  position: absolute;
+  bottom: 48px; left: 50%;
+  width: min(220px, 60vw); height: 4px;
+  transform: translateX(-50%);
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.splash-loader div {
+  height: 100%;
+  background: linear-gradient(90deg, #f97316, #facc15);
+  transform-origin: left;
+  animation: splash-fyld var(--splash-varighed, 3000ms) linear both;
+}
+@keyframes splash-fyld { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+
+/* Har brugeren slået animationer fra i styresystemet, så hold det roligt */
+@media (prefers-reduced-motion: reduce) {
+  .splash-bold, .splash-puls { animation: none; }
+}
