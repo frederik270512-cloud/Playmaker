@@ -150,7 +150,7 @@
     .spiller-tabel td { padding: 10px; border-bottom: 1px solid var(--kant); }
     .spiller-tabel tbody tr { cursor: pointer; transition: background 0.1s; }
     .spiller-tabel tbody tr:hover { background: var(--panel-lys); }
-    .spiller-tabel tbody tr.valgt { background: #2c3e5c; box-shadow: inset 4px 0 0 var(--blaa); }
+    .spiller-tabel tbody tr.valgt { background: rgba(249, 115, 22, 0.1); box-shadow: inset 4px 0 0 var(--blaa); }
     .navn-celle { font-weight: 600; }
     .svag { color: var(--tekst-svag); }
 
@@ -938,7 +938,7 @@
       cursor: pointer;
     }
     .hold-punkt:hover { border-color: var(--kant); }
-    .hold-punkt.aktiv { border-color: var(--blaa); background: #2c3e5c; }
+    .hold-punkt.aktiv { border-color: var(--blaa); background: rgba(249, 115, 22, 0.1); }
     .hold-punkt small { display: block; color: var(--tekst-svag); margin-top: 2px; }
 
     .scout h3 {
@@ -1092,7 +1092,7 @@
       font-weight: 600;
       cursor: pointer;
     }
-    .kd-knapper button:hover:not(:disabled) { border-color: var(--blaa); background: #1e3a5f; }
+    .kd-knapper button:hover:not(:disabled) { border-color: var(--blaa); background: rgba(249, 115, 22, 0.1); }
     .kd-knapper button[data-type="maal"] { border-color: #a16207; }
     .kd-knapper button:disabled { opacity: 0.35; cursor: not-allowed; }
     .udv-badge {
@@ -1240,7 +1240,7 @@
       cursor: pointer;
     }
     .skuffe-system:hover { border-color: var(--kant); }
-    .skuffe-system.aktiv { border-color: var(--blaa); background: #2c3e5c; }
+    .skuffe-system.aktiv { border-color: var(--blaa); background: rgba(249, 115, 22, 0.1); }
     .skuffe-system small { display: block; color: var(--tekst-svag); margin-top: 2px; }
     .skuffe-afspiller { display: flex; flex-direction: column; gap: 10px; border-top: 1px solid var(--kant); padding-top: 14px; }
     .skuffe .afspiller { width: 100%; flex-wrap: wrap; padding: 8px; }
@@ -1604,7 +1604,7 @@
   border-radius: 999px;
   font-size: 0.72rem;
   font-weight: 600;
-  background: #2c3e5c;
+  background: rgba(249, 115, 22, 0.1);
   color: var(--tekst-svag);
   border: 1px solid var(--kant);
   white-space: nowrap;

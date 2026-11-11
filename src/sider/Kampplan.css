@@ -83,7 +83,7 @@
   cursor: pointer;
 }
 .kp-system-valg-punkt:hover { border-color: var(--kant); }
-.kp-system-valg-punkt.valgt { border-color: var(--blaa); background: #2c3e5c; }
+.kp-system-valg-punkt.valgt { border-color: var(--blaa); background: rgba(249, 115, 22, 0.1); }
 .kp-system-valg-punkt input { position: absolute; top: 8px; left: 8px; width: 18px; height: 18px; margin: 0; }
 .kp-system-valg-bane svg { display: block; width: 100%; height: auto; aspect-ratio: 230 / 200; background: #1d4e89; border-radius: 4px; }
 

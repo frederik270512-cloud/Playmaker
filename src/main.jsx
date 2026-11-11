@@ -9,6 +9,7 @@ import { DataUdbyder } from "./DataKontekst.jsx";
 import { DialogUdbyder } from "./komponenter/Dialog.jsx";
 import App from "./App.jsx";
 import "./styles.css";
+import "./tema.css";            // det professionelle look – lægges ovenpå styles.css
 
 createRoot(document.getElementById("root")).render(
   <DataUdbyder>

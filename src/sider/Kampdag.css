@@ -48,7 +48,7 @@
   font-weight: 600;
   cursor: pointer;
 }
-.skudkort-faner button.aktiv { color: var(--tekst); border-color: var(--blaa); background: #1e3a5f; }
+.skudkort-faner button.aktiv { color: var(--tekst); border-color: var(--blaa); background: rgba(249, 115, 22, 0.1); }
 .skudkort-note { margin: 0; font-size: 0.75rem; color: var(--tekst-svag); }
 
 /* Selve målet: tre rækker og tre kolonner med en "målstolpe"-ramme rundt om */
@@ -104,7 +104,7 @@
   line-height: 1.2;
 }
 .hjoerne-knap small { font-weight: 500; color: var(--tekst-svag); }
-.hjoerne-knap:hover, .hjoerne-knap:focus-visible { border-color: var(--blaa); background: #1e3a5f; }
+.hjoerne-knap:hover, .hjoerne-knap:focus-visible { border-color: var(--blaa); background: rgba(249, 115, 22, 0.1); }
 
 /* ---------- Historik (spillerens side) ---------- */
 .historik-skudkort { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-start; }
