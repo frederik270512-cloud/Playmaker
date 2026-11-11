@@ -104,6 +104,8 @@ export default function Taktiktavle() {
   function startTraek(e, hvad) {
     if (e.button !== 0 || tegneAktiv) return;      // kun venstre museknap / én finger, og ikke mens man tegner
     e.stopPropagation();
+    // preventDefault: browseren må ikke begynde at markere tekst (eller vise kontekstmenu), mens man trækker
+    e.preventDefault();
     const boks = e.currentTarget.getBoundingClientRect();
     traekRef.current = {
       hvad,                                        // { type: "spiller", id } eller { type: "modstander", index }

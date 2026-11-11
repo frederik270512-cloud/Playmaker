@@ -165,3 +165,36 @@ input[type="checkbox"], input[type="range"] { accent-color: var(--accent); }
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; }
 }
+
+/* =========================================================
+   TRÆK OG TOUCH
+   • Alt der kan trækkes (baner, brikker, bolden, tegnelaget) må ALDRIG markere tekst
+   • På telefonen: ingen blå "tryk-firkant", ingen "kopiér/del"-menu ved langt tryk,
+     og ingen dobbelttryk-zoom, der forsinker knapperne
+   ========================================================= */
+.bane, .bane *, .system-bane, .system-bane *, .brik, .brik *, .sbrik, .sbrik *,
+.modstander, .spoegelse, .bold, .tegne-lag, .panel .brik, .analyse-bane,
+.knap, .fane, .kd-knapper, .hjoerne-knap {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+html { -webkit-tap-highlight-color: transparent; -webkit-text-size-adjust: 100%; }
+button, a, select, label, input { touch-action: manipulation; }
+img, svg { -webkit-user-drag: none; }
+
+/* Brikker på bænken: før kunne et lodret træk med fingeren scrolle listen i stedet
+   for at flytte spilleren (og så blev trækket afbrudt). Nu flytter fingeren altid brikken –
+   listen kan stadig scrolles ved at trække i mellemrummet mellem brikkerne. */
+.panel .brik { touch-action: none; }
+
+/* Mens man trækker, må intet på siden markeres */
+body.traekker, body.traekker * { -webkit-user-select: none !important; user-select: none !important; cursor: grabbing; }
+
+/* Større "tryk-flader" på touch-skærme (fingre er større end musen) */
+@media (pointer: coarse) {
+  .knap { min-height: 40px; }
+  .knap-lille { min-height: 34px; padding: 6px 12px; }
+  .fane { padding: 10px 14px; }
+  .felt input, .felt select, .felt textarea { font-size: 16px; }   /* 16px = iPhone zoomer ikke ind, når man trykker i et felt */
+}
