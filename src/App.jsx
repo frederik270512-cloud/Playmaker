@@ -136,6 +136,9 @@ export default function App() {
         <div className="data-knapper">
           <button className="knap knap-lille" onClick={eksporter} title="Gem alle data som en fil">💾 Gem fil</button>
           <button className="knap knap-lille" onClick={() => filFelt.current.click()} title="Hent data fra en fil">📂 Hent fil</button>
+          {/* Hent hele appens kildekode som zip – GitHub pakker den selv ud fra main-grenen */}
+          <a className="knap knap-lille" href="https://github.com/frederik270512-cloud/Playmaker/archive/refs/heads/main.zip"
+             title="Hent hele Playmakers kildekode som zip-fil" rel="noopener">⬇️ Kildekode</a>
           <input ref={filFelt} type="file" accept=".json,application/json" hidden onChange={importer} />
         </div>
       </header>

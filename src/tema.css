@@ -198,3 +198,6 @@ body.traekker, body.traekker * { -webkit-user-select: none !important; user-sele
   .fane { padding: 10px 14px; }
   .felt input, .felt select, .felt textarea { font-size: 16px; }   /* 16px = iPhone zoomer ikke ind, når man trykker i et felt */
 }
+
+/* Links der ligner knapper (fx "Kildekode") */
+a.knap { display:inline-flex; align-items:center; text-decoration:none; color:var(--tekst); }
